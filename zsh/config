@@ -1,0 +1,41 @@
+
+#### FIG ENV VARIABLES ####
+# Please make sure this block is at the start of this file.
+[ -s ~/.fig/shell/pre.sh ] && source ~/.fig/shell/pre.sh
+#### END FIG ENV VARIABLES ####
+export GOPATH="$HOME/dev/go"
+export PATH=$HOME/bin:/usr/local/bin:$HOME/.composer/vendor/bin:$PATH:$(go env GOPATH)/bin:/opt/homebrew/bin:$PATH
+export ZSH="$HOME/.oh-my-zsh"
+
+ZSH_THEME="avit"
+# SET ESCAPE TIMEOUT
+KEYTIMEOUT=1
+
+plugins=(git yarn npm zsh-autosuggestions)
+source $ZSH/oh-my-zsh.sh
+
+# Aliases
+alias vim="nvim"
+alias pa="php artisan"
+alias sa="sail artisan"
+alias ip="ipconfig getifaddr en0"
+alias c="clear"
+alias tf="terraform"
+alias soundreset="sudo kill `ps -ax | grep 'coreaudiod' | grep 'sbin' |awk '{print $1}'`"
+alias python="python3"
+alias dotfiles="vim ~/dotfiles"
+alias gs="git status"
+alias gl="git log"
+alias gd="git diff"
+alias no="cd ~/dev/nice-outside"
+alias sail='[ -f sail ] && bash sail || bash vendor/bin/sail'
+alias ports="lsof -iTCP -sTCP:LISTEN -P"
+
+
+export PATH="/usr/local/opt/php@7.4/bin:$PATH"
+
+
+#### FIG ENV VARIABLES ####
+# Please make sure this block is at the end of this file.
+[ -s ~/.fig/fig.sh ] && source ~/.fig/fig.sh
+#### END FIG ENV VARIABLES ####

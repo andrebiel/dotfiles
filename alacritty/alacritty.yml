@@ -1,0 +1,30 @@
+window:
+  padding:
+    x: 10
+    y: 10
+
+  decorations: none
+  startup_mode: Maximized
+
+scrolling:
+  history: 10000
+  multiplier: 3
+
+font:
+  normal:
+    family: "Hack Nerd Font"
+  size: 18.0
+  offset:
+    x: 0
+    y: 18
+
+live_config_reload: true
+
+shell:
+  program: /usr/local/bin/zsh
+
+key_bindings:
+  - { key: F12, mods: Control, action: IncreaseFontSize }
+  - { key: F11, mods: Control, action: DecreaseFontSize }
+  - { key: Key0, mods: Control, action: ResetFontSize }
+  - { key: N, mods: Command, action: SpawnNewInstance }

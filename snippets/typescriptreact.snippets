@@ -1,0 +1,25 @@
+snippet mcomp "React memoized Comp"
+import React from "react"
+
+const ${1:name}: React.FC = () => {
+	return $0;
+};
+
+export default React.memo($1);
+endsnippet
+
+
+snippet rnscomp "React native styled memoized comp"
+import React from "react"
+import { StyleSheet } from "react-native";
+
+const ${1:name}: React.FC = () => {
+	return $0;
+};
+
+const styles = StyleSheet.create({});
+
+export default React.memo($1);
+endsnippet
+
+
