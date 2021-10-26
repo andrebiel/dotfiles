@@ -135,6 +135,8 @@ vnoremap <leader>yy "+y
 nnoremap <leader>pp "+p
 vnoremap <leader>pp "+p
 
+tnoremap <Esc> <C-\><C-n>:q!<CR>
+
 " Theme
 let g:NERDTreeWinSize=80
 let g:NERDTreeWinPos = "right"
@@ -169,4 +171,5 @@ let g:neoformat_php_phpcsfixer = {
     \ }
 
 let g:neoformat_enabled_php = ['phpcsfixer']
+let g:neoformat_enabled_typescript = ['prettier']
 
