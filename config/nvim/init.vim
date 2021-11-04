@@ -66,6 +66,7 @@ Plug 'quangnguyen30192/cmp-nvim-ultisnips'
 " GIT
 Plug 'TimUntersberger/neogit'
 Plug 'evanleck/vim-svelte', {'branch': 'main'}
+Plug 'github/copilot.vim'
 call plug#end()
 
 " ------------------------------------------------------
@@ -137,7 +138,7 @@ vnoremap <leader>yy "+y
 nnoremap <leader>pp "+p
 vnoremap <leader>pp "+p
 
-tnoremap <Esc> <C-\><C-n>:q!<CR>
+tnoremap <Esc> <C-\><C-n>
 
 " Theme
 let g:NERDTreeWinSize=80
