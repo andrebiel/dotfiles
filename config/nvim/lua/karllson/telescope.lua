@@ -5,6 +5,11 @@ require('telescope').setup {
     prompt_prefix = '❯ ',
     selection_caret = '❯ ',
     color_devicons = true,
+  },
+  pickers = {
+    find_files = {
+        theme = 'dropdown'
+    }
   }
 }
 
