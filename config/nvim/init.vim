@@ -158,7 +158,7 @@ augroup END
 
 augroup KARLLSON
     autocmd!
-    autocmd BufWritePre Neoformat
+    autocmd BufWritePre * undojoin | Neoformat
 augroup END
 
 lua require("karllson.statusline")
