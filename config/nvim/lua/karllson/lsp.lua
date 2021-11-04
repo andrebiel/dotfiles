@@ -1,31 +1,8 @@
-local nvim_lsp = require('lspconfig')
-local root_pattern = nvim_lsp.util.root_pattern
+local lspconfig = require('lspconfig')
+local cmp = require('cmp') -- autocomplete
+
+local root_pattern = lspconfig.util.root_pattern
 local on_attach = function(client, bufnr)
-
--- autocomplete
-require'compe'.setup {
-  enabled = true;
-  autocomplete = true;
-  debug = false;
-  min_length = 1;
-  preselect = 'enable';
-  throttle_time = 80;
-  source_timeout = 200;
-  incomplete_delay = 400;
-  max_abbr_width = 100;
-  max_kind_width = 100;
-  max_menu_width = 100;
-  documentation = true;
-
-  source = {
-    path = true;
-    buffer = true;
-    calc = true;
-    nvim_lsp = true;
-    nvim_lua = true;
-    vsnip = true;
-  };
-}
 
 if client.resolved_capabilities.document_highlight then
     vim.api.nvim_exec([[
@@ -41,7 +18,56 @@ if client.resolved_capabilities.document_highlight then
     end
 end
 
-nvim_lsp.tsserver.setup({
+--------------------------------------------------------------------------------------
+-- CMP AUTOCOMPLETE
+--------------------------------------------------------------------------------------
+  -- Setup nvim-cmp.
+cmp.setup({
+    snippet = {
+        -- REQUIRED - you must specify a snippet engine
+        expand = function(args)
+        vim.fn["UltiSnips#Anon"](args.body) -- For `ultisnips` users.
+        end,
+    },
+
+    mapping = {
+        ['<C-u>'] = cmp.mapping.scroll_docs(-4),
+        ['<C-d>'] = cmp.mapping.scroll_docs(4), 
+        ['<C-Space>'] = cmp.mapping.complete(),
+        ['<C-e>'] = cmp.mapping.close(),
+        ['<CR>'] = cmp.mapping.confirm({ select = true }),
+    },
+
+    sources = cmp.config.sources({
+        { name = 'nvim_lsp' },
+        { name = 'ultisnips' }, -- For ultisnips users.
+    }, {
+        { name = 'buffer' },
+    })
+})
+
+-- Use buffer source for `/` (if you enabled `native_menu`, this won't work anymore).
+cmp.setup.cmdline('/', {
+    sources = {
+        { name = 'buffer' }
+    }
+})
+
+-- Use cmdline & path source for ':' (if you enabled `native_menu`, this won't work anymore).
+cmp.setup.cmdline(':', {
+    sources = cmp.config.sources({
+        { name = 'path' }
+    }, {
+        { name = 'cmdline' }
+    })
+})
+
+--------------------------------------------------------------------------------------
+-- Server Setups
+--------------------------------------------------------------------------------------
+local capabilities = require('cmp_nvim_lsp').update_capabilities(vim.lsp.protocol.make_client_capabilities())
+
+lspconfig.tsserver.setup({
     filetypes = {
       "javascript",
       "javascriptreact",
@@ -50,17 +76,21 @@ nvim_lsp.tsserver.setup({
       "typescriptreact",
       "typescript.tsx"
     },
-    on_attach = on_attach
+    on_attach = on_attach,
+    capabilities = capabilities
 })
 
-nvim_lsp.intelephense.setup({
-    on_attach = on_attach
+lspconfig.intelephense.setup({
+    on_attach = on_attach,
+    capabilities = capabilities
 })
 
-nvim_lsp.pylsp.setup{
-    on_attach = on_attach
+lspconfig.pylsp.setup{
+    on_attach = on_attach,
+    capabilities = capabilities
 }
 
-nvim_lsp.gopls.setup{
-    on_attach = on_attach
+lspconfig.gopls.setup{
+    on_attach = on_attach,
+    capabilities = capabilities
 }

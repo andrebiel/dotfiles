@@ -51,18 +51,18 @@ Plug 'glepnir/galaxyline.nvim' , {'branch': 'main'}
 Plug 'ap/vim-buftabline'
 Plug 'preservim/nerdtree'
 Plug 'neovim/nvim-lspconfig'
-Plug 'hrsh7th/nvim-compe'
 Plug 'sbdchd/neoformat'
-
-" Icons
 Plug 'ryanoasis/vim-devicons'
-" Plug 'kyazdani42/nvim-web-devicons'
-" Plug 'yamatsum/nvim-web-nonicons'
-
+Plug 'hrsh7th/cmp-nvim-lsp'
+Plug 'hrsh7th/cmp-buffer'
+Plug 'hrsh7th/cmp-path'
+Plug 'hrsh7th/cmp-cmdline'
+Plug 'hrsh7th/nvim-cmp'
 " Snippets
 Plug 'SirVer/ultisnips'
 Plug 'honza/vim-snippets'
 Plug 'fhill2/telescope-ultisnips.nvim'
+Plug 'quangnguyen30192/cmp-nvim-ultisnips'
 " GIT
 Plug 'TimUntersberger/neogit'
 Plug 'evanleck/vim-svelte', {'branch': 'main'}
@@ -80,14 +80,16 @@ nnoremap <C-w> :bd<CR>
 nnoremap <C-s> :w!<CR>
 nnoremap <Right> :bnext<CR>
 nnoremap <Left> :bprevious<CR>
+nnoremap <Leader>+ :vertical resize +5<CR>
+nnoremap <Leader>- :vertical resize -5<CR>
+" Lit shit from theprimeagen
+vnoremap J :m '>+1<CR>gv=gv
+vnoremap K :m '<-2<CR>gv=gv
+nnoremap Y yg$
+nnoremap n nzzzv
+nnoremap N Nzzzv
+nnoremap J mzJ`z
 
-" LSP autocomplete
-inoremap <silent><expr> <C-Space> compe#complete()
-inoremap <silent><expr> <CR>      compe#confirm('<CR>')
-inoremap <silent><expr> <C-e>     compe#close('<C-e>')
-inoremap <silent><expr> <C-f>     compe#scroll({ 'delta': +4 })
-inoremap <silent><expr> <C-d>     compe#scroll({ 'delta': -4 })
- 
 " LSP
 nnoremap gd <cmd>Telescope lsp_definitions<cr>
 nnoremap gr <cmd>Telescope lsp_references<cr>
@@ -141,11 +143,9 @@ tnoremap <Esc> <C-\><C-n>:q!<CR>
 let g:NERDTreeWinSize=80
 let g:NERDTreeWinPos = "right"
 
-" colorscheme gruvbox
 colorscheme OceanicNext
-" colorscheme material
 " let g:material_style = 'oceanic'
-" let g:material_italic_comments = 1
+let g:material_italic_comments = 1
 " let g:material_italic_keywords = 1
 " let g:material_italic_functions = 1
 " let g:material_contrast = 1
@@ -156,13 +156,17 @@ augroup highlight_yank
     autocmd TextYankPost * silent! lua require'vim.highlight'.on_yank({timeout = 40})
 augroup END
 
+augroup KARLLSON
+    autocmd!
+    autocmd BufWritePre Neoformat
+augroup END
+
 lua require("karllson.statusline")
 lua require("karllson.lsp")
 lua require("karllson.telescope")
 lua require("karllson.treesitter")
 lua require("karllson.snippets")
 lua require("karllson.git")
-lua require("karllson.codeformat")
 
 let g:neoformat_php_phpcsfixer = {
     \ 'exe': 'php-cs-fixer',
