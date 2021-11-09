@@ -1,21 +1,21 @@
 local themes = require('telescope.themes')
+local dropdown_theme = {
+    theme = 'dropdown',
+    layout_config = {
+        width = 0.9
+    }
+}
 
 require('telescope').setup {
   defaults = {
     prompt_prefix = '❯ ',
     selection_caret = '❯ ',
-    color_devicons = true,
+    color_devicons = true
   },
   pickers = {
-    find_files = {
-        theme = 'dropdown'
-    },
-    git_files = {
-        theme = 'dropdown'
-    },
-    live_grep = {
-        theme = 'dropdown'
-    }
+    find_files = dropdown_theme,
+    git_files = dropdown_theme,
+    live_grep = dropdown_theme
   }
 }
 
