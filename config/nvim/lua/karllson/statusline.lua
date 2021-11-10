@@ -6,7 +6,7 @@ local vcs = require('galaxyline.provider_vcs')
 local diagnostic = require('galaxyline.provider_diagnostic')
 local lspclient = require('galaxyline.provider_lsp')
 local colors = {
-    bg = '#282c34',
+    bg = '#0D151A',
     line_bg = '#353644',
     fg = '#8FBCBB',
     fg_green = '#65a380',
@@ -30,6 +30,9 @@ DiagnosticHint = diagnostic.get_diagnostic_hint
 DiagnosticInfo = diagnostic.get_diagnostic_info
 GetLspClient = lspclient.get_lsp_client
 
+-- ----------------------------------------------------------------
+-- Conditions
+-- ----------------------------------------------------------------
 local buffer_not_empty = function()
   if vim.fn.empty(vim.fn.expand('%:t')) ~= 1 then
     return true
@@ -37,9 +40,45 @@ local buffer_not_empty = function()
   return false
 end
 
+-- ----------------------------------------------------------------
+-- Icons
+-- ----------------------------------------------------------------
 local Whitespace = {
     Space = {
-        provider = function () return ' ' end
+        provider = function () return ' ' end,
+        highlight = { colors.bg, colors.bg },
+    }
+}
+
+local GitIcon = {
+    GitIcon = {
+        provider = function () return '  ' end,
+        highlight = { colors.orange, colors.bg },
+        condition = vcs.check_git_workspace,
+    }
+}
+
+local WarnIcon = {
+    WarnIcon = {
+        provider = function () return '  ' end,
+        highlight = { colors.yellow, colors.bg },
+        condition = buffer_not_empty
+    }
+}
+
+local InfoIcon = {
+    InfoIcon = {
+        provider = function () return '  ' end,
+        highlight = { colors.blue, colors.bg },
+        condition = buffer_not_empty,
+    }
+}
+
+local ErrorIcon = {
+    ErrorIcon = {
+        provider = function () return '  ' end,
+        highlight = { colors.red, colors.bg },
+        condition = buffer_not_empty,
     }
 }
 -- ----------------------------------------------------------------
@@ -52,7 +91,7 @@ gls.left[2] = {
   FileIcon = {
     provider = 'FileIcon',
     condition = buffer_not_empty,
-    highlight = {fileinfo.get_file_icon_color},
+    highlight = {fileinfo.get_file_icon_color, colors.bg},
   },
 }
 
@@ -60,40 +99,48 @@ gls.left[3] = {
   FileName = {
     provider = {'FileName'},
     condition = buffer_not_empty,
-    highlight = {colors.fg, 'bold'}
+    highlight = {colors.fg, colors.bg}
+  }
+}
+
+gls.left[4] = GitIcon
+
+gls.left[5] = {
+  GitBranch = {
+    provider = 'GitBranch',
+    condition = vcs.check_git_workspace,
+    highlight = {'#8FBCBB', colors.bg},
   }
 }
 
 -- ----------------------------------------------------------------
 -- Insert RIGHT
 -- ----------------------------------------------------------------
-gls.right[1] = {
+gls.right[1] = ErrorIcon
+gls.right[2] = {
   DiagnosticError  = {
     provider = DiagnosticError, 
-    highlight = {colors.red},
+    highlight = {colors.red, colors.bg},
+    condition = buffer_not_empty,
   }
 }
 
-gls.right[2] = {
+gls.right[3] = WarnIcon
+gls.right[4] = {
   DiagnosticWarn  = {
     provider = DiagnosticWarn, 
-    highlight = {colors.orange},
+    highlight = {colors.orange, colors.bg},
+    condition = buffer_not_empty,
   }
 }
 
-gls.right[3] = {
+gls.right[5] = InfoIcon
+gls.right[6] = {
   DiagnosticHint  = {
     provider = DiagnosticHint, 
-    highlight = {colors.blue},
+    highlight = {colors.blue, colors.bg},
+    condition = buffer_not_empty,
   }
 }
 
-gls.right[4] = {
-  GitBranch = {
-    provider = 'GitBranch',
-    condition = vcs.check_git_workspace,
-    highlight = {'#8FBCBB', 'bold'},
-  }
-}
-
-gls.right[5] = Whitespace
+gls.right[7] = Whitespace

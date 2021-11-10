@@ -145,10 +145,12 @@ nnoremap <leader>pp "+p
 vnoremap <leader>pp "+p
 
 tnoremap <Esc> <C-\><C-n>
+nnoremap <Esc> <C-e>
 
 " Harpoon
 nnoremap <leader>a :lua require("harpoon.mark").add_file()<CR>
-nnoremap <leader>jh :lua require("harpoon.cmd-ui").toggle_quick_menu()<CR>
+nnoremap <leader>jm :lua require("harpoon.ui").toggle_quick_menu()<CR>
+nnoremap <leader>jc :lua require("harpoon.cmd-ui").toggle_quick_menu()<CR>
 nnoremap <leader>jf :lua require("harpoon.ui").nav_file(1)<CR>
 nnoremap <leader>jd :lua require("harpoon.ui").nav_file(2)<CR>
 nnoremap <leader>js :lua require("harpoon.ui").nav_file(3)<CR>
@@ -186,6 +188,7 @@ lua require("karllson.telescope")
 lua require("karllson.treesitter")
 lua require("karllson.snippets")
 lua require("karllson.git")
+lua require("karllson.harpoon")
 
 let g:neoformat_php_phpcsfixer = {
     \ 'exe': 'php-cs-fixer',
