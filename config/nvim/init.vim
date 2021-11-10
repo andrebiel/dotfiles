@@ -1,6 +1,6 @@
-set path+=**
 :let mapleader = " "
 
+set path+=**
 set nocompatible             
 set encoding=UTF-8
 set number relativenumber
@@ -30,6 +30,18 @@ set completeopt=menuone,noselect
 set shortmess+=c " Don't pass messages to ins-completion-menu
 set guicursor=
 
+" wild, Ignores
+set wildmode=longest,list,full
+set wildmenu
+set wildignore+=*.pyc
+set wildignore+=*_build/*
+set wildignore+=**/coverage/*
+set wildignore+=**/node_modules/*
+set wildignore+=**/android/*
+set wildignore+=**/ios/*
+set wildignore+=**/.git/*
+
+
 filetype off
 syntax enable
 filetype plugin indent on
@@ -48,7 +60,6 @@ Plug 'nvim-treesitter/nvim-treesitter', {'do': ':TSUpdate'}
 Plug 'gruvbox-community/gruvbox'
 Plug 'mhartington/oceanic-next'
 Plug 'glepnir/galaxyline.nvim' , {'branch': 'main'}
-Plug 'ap/vim-buftabline'
 Plug 'preservim/nerdtree'
 Plug 'neovim/nvim-lspconfig'
 Plug 'sbdchd/neoformat'
@@ -67,20 +78,16 @@ Plug 'quangnguyen30192/cmp-nvim-ultisnips'
 Plug 'TimUntersberger/neogit'
 Plug 'evanleck/vim-svelte', {'branch': 'main'}
 Plug 'github/copilot.vim'
+" Files
+Plug 'ThePrimeagen/harpoon'
 call plug#end()
 
 " ------------------------------------------------------
 " KeyMaps
 " ------------------------------------------------------
 nnoremap qqq :qa!<CR>
-nnoremap <C-h> <C-W><Left>
-nnoremap <C-j> <C-W><Down>
-nnoremap <C-k> <C-W><Up>
-nnoremap <C-l> <C-W><Right>
 nnoremap <C-w> :bd<CR>
 nnoremap <C-s> :w!<CR>
-nnoremap <Right> :bnext<CR>
-nnoremap <Left> :bprevious<CR>
 nnoremap <Leader>+ :vertical resize +5<CR>
 nnoremap <Leader>- :vertical resize -5<CR>
 " Lit shit from theprimeagen
@@ -98,11 +105,11 @@ nnoremap gi <cmd>Telescope lsp_implementations<cr>
 nnoremap <leader>ga <cmd>Telescope lsp_code_actions<cr>
 nnoremap <leader>ds <cmd>Telescope lsp_document_symbols<cr>
 nnoremap <leader>ws <cmd>Telescope lsp_workspace_symbols<cr>
+nnoremap <leader>si <cmd>lua vim.lsp.buf.signature_help()<cr>
+nnoremap <leader>rn <cmd>lua vim.lsp.buf.rename()<cr>
 nnoremap K <cmd>lua vim.lsp.buf.hover()<cr>
 nnoremap [d <cmd>lua vim.lsp.diagnostic.goto_prev()<CR>
 nnoremap ]d <cmd>lua vim.lsp.diagnostic.goto_next()<CR>
-nnoremap <C-k> <cmd>lua vim.lsp.buf.signature_help()<cr>
-nnoremap <leader>rn <cmd>lua vim.lsp.buf.rename()<cr>
     
 " Telescope
 nnoremap <leader>ft <cmd>lua require('karllson.telescope').file_tree()<cr>
@@ -114,10 +121,9 @@ nnoremap <leader>ff <cmd>lua require('karllson.telescope').find_files()<cr>
 nnoremap <leader>gg <cmd>lua require('karllson.telescope').grep()<cr>
 
 " Nerdtree
-" nnoremap <leader>n :NERDTreeFocus<CR>
-" nnoremap <C-n> :NERDTree<CR>
-nnoremap <C-n> :NERDTreeToggle<CR>
-nnoremap <C-c> :NERDTreeFind<CR>
+nnoremap <Leader>t :NERDTreeToggle<CR>
+" nnoremap <leader>tf :NERDTreeFocus<CR>
+nnoremap <Leader>tt :NERDTreeFind<CR>
 
 " Snippets
 let g:UltiSnipsExpandTrigger="<tab>"
@@ -139,6 +145,18 @@ nnoremap <leader>pp "+p
 vnoremap <leader>pp "+p
 
 tnoremap <Esc> <C-\><C-n>
+
+" Harpoon
+nnoremap <leader>a :lua require("harpoon.mark").add_file()<CR>
+nnoremap <leader>jh :lua require("harpoon.cmd-ui").toggle_quick_menu()<CR>
+nnoremap <leader>jf :lua require("harpoon.ui").nav_file(1)<CR>
+nnoremap <leader>jd :lua require("harpoon.ui").nav_file(2)<CR>
+nnoremap <leader>js :lua require("harpoon.ui").nav_file(3)<CR>
+nnoremap <leader>ja :lua require("harpoon.ui").nav_file(4)<CR>
+nnoremap <leader>jj :lua require("harpoon.term").gotoTerminal(1)<CR>
+nnoremap <leader>jk :lua require("harpoon.term").gotoTerminal(2)<CR>
+" nnoremap <leader>cu :lua require("harpoon.term").sendCommand(1, 1)<CR>
+" nnoremap <leader>ce :lua require("harpoon.term").sendCommand(1, 2)<CR>
 
 " Theme
 let g:NERDTreeWinSize=80
