@@ -86,7 +86,6 @@ call plug#end()
 " KeyMaps
 " ------------------------------------------------------
 nnoremap qqq :qa!<CR>
-nnoremap <C-w> :bd<CR>
 nnoremap <C-s> :w!<CR>
 nnoremap <Leader>+ :vertical resize +5<CR>
 nnoremap <Leader>- :vertical resize -5<CR>
@@ -121,9 +120,9 @@ nnoremap <leader>ff <cmd>lua require('karllson.telescope').find_files()<cr>
 nnoremap <leader>gg <cmd>lua require('karllson.telescope').grep()<cr>
 
 " Nerdtree
-nnoremap <Leader>t :NERDTreeToggle<CR>
+nnoremap <C-t> :NERDTreeToggle<CR>
 " nnoremap <leader>tf :NERDTreeFocus<CR>
-nnoremap <Leader>tt :NERDTreeFind<CR>
+nnoremap <leader>tt :NERDTreeFind<CR>
 
 " Snippets
 let g:UltiSnipsExpandTrigger="<tab>"
@@ -145,11 +144,10 @@ nnoremap <leader>pp "+p
 vnoremap <leader>pp "+p
 
 tnoremap <Esc> <C-\><C-n>
-nnoremap <Esc> <C-e>
 
 " Harpoon
 nnoremap <leader>a :lua require("harpoon.mark").add_file()<CR>
-nnoremap <leader>jm :lua require("harpoon.ui").toggle_quick_menu()<CR>
+nnoremap <leader>je :lua require("harpoon.ui").toggle_quick_menu()<CR>
 nnoremap <leader>jc :lua require("harpoon.cmd-ui").toggle_quick_menu()<CR>
 nnoremap <leader>jf :lua require("harpoon.ui").nav_file(1)<CR>
 nnoremap <leader>jd :lua require("harpoon.ui").nav_file(2)<CR>
