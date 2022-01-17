@@ -1,0 +1,5 @@
+function rename_tab() {
+    echo -ne "\e]1;$1\a"
+}
+
+rename_tab

@@ -55,7 +55,6 @@ Plug 'nvim-lua/popup.nvim'
 Plug 'nvim-lua/plenary.nvim'
 Plug 'nvim-telescope/telescope.nvim'
 Plug 'tpope/vim-commentary'
-Plug 'vim-test/vim-test'
 Plug 'nvim-treesitter/nvim-treesitter', {'do': ':TSUpdate'}  
 Plug 'gruvbox-community/gruvbox'
 Plug 'mhartington/oceanic-next'
@@ -119,6 +118,12 @@ nnoremap <leader>fg <cmd>lua require('karllson.telescope').git_files()<cr>
 nnoremap <leader>ff <cmd>lua require('karllson.telescope').find_files()<cr>
 nnoremap <leader>gg <cmd>lua require('karllson.telescope').grep()<cr>
 
+" Move Splits
+nnoremap <C-J> <C-W><C-J>
+nnoremap <C-K> <C-W><C-K>
+nnoremap <C-L> <C-W><C-L>
+nnoremap <C-H> <C-W><C-H>
+
 " Nerdtree
 nnoremap <C-t> :NERDTreeToggle<CR>
 " nnoremap <leader>tf :NERDTreeFocus<CR>
@@ -130,12 +135,6 @@ let g:UltiSnipsJumpForwardTrigger="<c-b>"
 let g:UltiSnipsJumpBackwardTrigger="<c-z>"
 let g:UltiSnipsSnippetDirectories=['~/dotfiles/snippets']
 nnoremap <leader>sn <cmd>lua require'telescope'.extensions.ultisnips.ultisnips{}<cr>
-
-" Testing
-nnoremap <leader>tn :TestNearest<CR>
-nnoremap <leader>tf :TestFile<CR>
-nnoremap <leader>ts :TestSuite<CR>
-nnoremap <leader>tl :TestLast<CR>
 
 " Copy to and from clipboard
 nnoremap <leader>yy "+y

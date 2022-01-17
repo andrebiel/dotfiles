@@ -3,17 +3,27 @@
 # Please make sure this block is at the start of this file.
 [ -s ~/.fig/shell/pre.sh ] && source ~/.fig/shell/pre.sh
 #### END FIG ENV VARIABLES ####
-export GOPATH="$HOME/dev/go"
-export PATH="/opt/homebrew/bin:$PATH"
-export PATH=$HOME/bin:/usr/local/bin:$HOME/.composer/vendor/bin:$PATH:$(go env GOPATH)/bin:$PATH
-export ZSH="$HOME/.oh-my-zsh"
 
+# EXPORTS / PATH
+export ZSH="$HOME/.oh-my-zsh"
+export GOPATH="$HOME/dev/go"
+export PATH=$HOME/bin:/usr/local/bin:$HOME/.composer/vendor/bin:$PATH:$(go env GOPATH)/bin:/opt/homebrew/bin:$PATH
+export PATH=/Users/Shared/DBngin/mysql/8.0.27/bin:$PATH
+export PATH="/usr/local/opt/php@7.4/bin:$PATH"
+
+# THEME
 ZSH_THEME="avit"
+
 # SET ESCAPE TIMEOUT
 KEYTIMEOUT=1
 
+# PLUGINS
 plugins=(git yarn npm zsh-autosuggestions)
 source $ZSH/oh-my-zsh.sh
+
+# AUTOLOAD SCRIPTS
+fpath=( ~/dotfiles/zsh/functions "${fpath[@]}" )
+autoload -Uz $fpath[1]/*(.:t)
 
 # Aliases
 alias vim="nvim"
@@ -31,12 +41,17 @@ alias gd="git diff"
 alias no="cd ~/dev/nice-outside"
 alias sail='[ -f sail ] && bash sail || bash vendor/bin/sail'
 alias ports="lsof -iTCP -sTCP:LISTEN -P"
+alias pest="./vendor/bin/pest"
+alias tr=rename_tab
+
+# MISC
+DISABLE_AUTO_TITLE="true"
 
 
-export PATH="/usr/local/opt/php@7.4/bin:$PATH"
 
 
 #### FIG ENV VARIABLES ####
 # Please make sure this block is at the end of this file.
 [ -s ~/.fig/fig.sh ] && source ~/.fig/fig.sh
 #### END FIG ENV VARIABLES ####
+
