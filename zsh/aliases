@@ -1,3 +1,4 @@
+alias awsc="vim ~/.aws/config"
 alias vim="nvim"
 alias pa="php artisan"
 alias sa="sail artisan"
