@@ -64,5 +64,5 @@ export default function Command() {
     );
   };
 
-  return <List>{Object.keys(profiles).map(renderProfile)}</List>;
+  return <List>{Object.keys(profiles).sort().map(renderProfile)}</List>;
 }
