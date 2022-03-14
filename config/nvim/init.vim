@@ -29,6 +29,7 @@ set signcolumn=yes
 set completeopt=menuone,noselect
 set shortmess+=c " Don't pass messages to ins-completion-menu
 set guicursor=
+set colorcolumn=80
 
 " wild, Ignores
 set wildmode=longest,list,full
