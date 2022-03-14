@@ -79,7 +79,7 @@ Plug 'evanleck/vim-svelte', {'branch': 'main'}
 Plug 'github/copilot.vim'
 " Files
 Plug 'ThePrimeagen/harpoon'
-Plug 'vim-airline/vim-airline'
+Plug 'nvim-lualine/lualine.nvim'
 call plug#end()
 
 " ------------------------------------------------------
@@ -171,6 +171,7 @@ lua require("karllson.treesitter")
 lua require("karllson.snippets")
 lua require("karllson.git")
 lua require("karllson.harpoon")
+lua require("karllson.statusline")
 
 let g:neoformat_php_phpcsfixer = {
     \ 'exe': 'php-cs-fixer',
