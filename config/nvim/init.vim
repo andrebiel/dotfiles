@@ -84,6 +84,17 @@ call plug#end()
 " ------------------------------------------------------
 " KeyMaps
 " ------------------------------------------------------
+
+" Harpoon
+nnoremap <leader>a :lua require("harpoon.mark").add_file()<CR>
+nnoremap <leader>je :lua require("harpoon.ui").toggle_quick_menu()<CR>
+nnoremap <leader>jf :lua require("harpoon.ui").nav_file(1)<CR>
+nnoremap <leader>jd :lua require("harpoon.ui").nav_file(2)<CR>
+nnoremap <leader>js :lua require("harpoon.ui").nav_file(3)<CR>
+nnoremap <leader>ja :lua require("harpoon.ui").nav_file(4)<CR>
+nnoremap <leader>jj :lua require("harpoon.term").gotoTerminal(1)<CR>
+nnoremap <leader>jk :lua require("harpoon.term").gotoTerminal(2)<CR>
+
 nnoremap qqq :qa!<CR>
 nnoremap <C-s> :w!<CR>
 nnoremap <Leader>+ :vertical resize +5<CR>
@@ -118,12 +129,6 @@ nnoremap <leader>fg <cmd>lua require('karllson.telescope').git_files()<cr>
 nnoremap <leader>ff <cmd>lua require('karllson.telescope').find_files()<cr>
 nnoremap <leader>gg <cmd>lua require('karllson.telescope').grep()<cr>
 
-" Move Splits
-nnoremap <C-J> <C-W><C-J>
-nnoremap <C-K> <C-W><C-K>
-nnoremap <C-L> <C-W><C-L>
-nnoremap <C-H> <C-W><C-H>
-
 " Nerdtree
 nnoremap <C-t> :NERDTreeToggle<CR>
 " nnoremap <leader>tf :NERDTreeFocus<CR>
@@ -144,18 +149,7 @@ vnoremap <leader>pp "+p
 
 tnoremap <Esc> <C-\><C-n>
 
-" Harpoon
-nnoremap <leader>a :lua require("harpoon.mark").add_file()<CR>
-nnoremap <leader>je :lua require("harpoon.ui").toggle_quick_menu()<CR>
-nnoremap <leader>jc :lua require("harpoon.cmd-ui").toggle_quick_menu()<CR>
-nnoremap <leader>jf :lua require("harpoon.ui").nav_file(1)<CR>
-nnoremap <leader>jd :lua require("harpoon.ui").nav_file(2)<CR>
-nnoremap <leader>js :lua require("harpoon.ui").nav_file(3)<CR>
-nnoremap <leader>ja :lua require("harpoon.ui").nav_file(4)<CR>
-nnoremap <leader>jj :lua require("harpoon.term").gotoTerminal(1)<CR>
-nnoremap <leader>jk :lua require("harpoon.term").gotoTerminal(2)<CR>
-" nnoremap <leader>cu :lua require("harpoon.term").sendCommand(1, 1)<CR>
-" nnoremap <leader>ce :lua require("harpoon.term").sendCommand(1, 2)<CR>
+
 
 " Theme
 let g:NERDTreeWinSize=80
@@ -175,8 +169,7 @@ augroup highlight_yank
 augroup END
 
 augroup KARLLSON
-    autocmd!
-    autocmd BufWritePre * undojoin | Neoformat
+    au BufWritePre * try | undojoin | Neoformat | catch /E790/ | Neoformat | endtry
 augroup END
 
 lua require("karllson.statusline")
