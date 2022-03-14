@@ -59,7 +59,6 @@ Plug 'tpope/vim-commentary'
 Plug 'nvim-treesitter/nvim-treesitter', {'do': ':TSUpdate'}  
 Plug 'gruvbox-community/gruvbox'
 Plug 'mhartington/oceanic-next'
-Plug 'glepnir/galaxyline.nvim' , {'branch': 'main'}
 Plug 'preservim/nerdtree'
 Plug 'neovim/nvim-lspconfig'
 Plug 'sbdchd/neoformat'
@@ -80,6 +79,7 @@ Plug 'evanleck/vim-svelte', {'branch': 'main'}
 Plug 'github/copilot.vim'
 " Files
 Plug 'ThePrimeagen/harpoon'
+Plug 'vim-airline/vim-airline'
 call plug#end()
 
 " ------------------------------------------------------
@@ -165,7 +165,6 @@ augroup KARLLSON
     au BufWritePre * try | undojoin | Neoformat | catch /E790/ | Neoformat | endtry
 augroup END
 
-lua require("karllson.statusline")
 lua require("karllson.lsp")
 lua require("karllson.telescope")
 lua require("karllson.treesitter")
