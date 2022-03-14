@@ -149,19 +149,11 @@ vnoremap <leader>pp "+p
 
 tnoremap <Esc> <C-\><C-n>
 
-
-
-" Theme
 let g:NERDTreeWinSize=80
 let g:NERDTreeWinPos = "right"
 
-colorscheme OceanicNext
-" let g:material_style = 'oceanic'
-let g:material_italic_comments = 1
-" let g:material_italic_keywords = 1
-" let g:material_italic_functions = 1
-" let g:material_contrast = 1
-
+" Theme
+colorscheme gruvbox
 
 augroup highlight_yank
     autocmd!
