@@ -77,7 +77,7 @@ Plug 'evanleck/vim-svelte', {'branch': 'main'}
 Plug 'github/copilot.vim'
 Plug 'ThePrimeagen/harpoon'
 Plug 'nvim-lualine/lualine.nvim'
-" Plug 'glepnir/lspsaga.nvim'
+Plug 'tami5/lspsaga.nvim'
 call plug#end()
 
 " ------------------------------------------------------
@@ -110,12 +110,14 @@ nnoremap J mzJ`z
 nnoremap gd <cmd>Telescope lsp_definitions<cr>
 nnoremap gr <cmd>Telescope lsp_references<cr>
 nnoremap gi <cmd>Telescope lsp_implementations<cr>
-nnoremap <leader>ga <cmd>Telescope lsp_code_actions<cr>
+nnoremap <leader>ga <cmd>Lspsaga code_action<cr>
+vnoremap <leader>ga <cmd>Lspsaga code_action<cr>
 nnoremap <leader>si <cmd>lua vim.lsp.buf.signature_help()<cr>
 nnoremap <leader>rn <cmd>lua vim.lsp.buf.rename()<cr>
-nnoremap K <cmd>lua vim.lsp.buf.hover()<cr>
-nnoremap [d <cmd>lua vim.lsp.diagnostic.goto_prev()<CR>
-nnoremap ]d <cmd>lua vim.lsp.diagnostic.goto_next()<CR>
+" nnoremap <leader>rn <cmd>Lspsaga rename<cr>
+nnoremap K <cmd>Lspsaga hover_doc<cr>
+nnoremap [d <cmd>Lspsaga diagnostic_jump_prev<CR>
+nnoremap ]d <cmd>Lspsaga diagnostic_jump_next<CR>
 nnoremap <leader>ds <cmd>Telescope lsp_document_symbols<cr>
 nnoremap <leader>ws <cmd>Telescope lsp_workspace_symbols<cr>
     
