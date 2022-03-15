@@ -1,5 +1,6 @@
 local lspconfig = require('lspconfig')
 local cmp = require('cmp') -- autocomplete
+local saga = require 'lspsaga'
 
 local root_pattern = lspconfig.util.root_pattern
 local on_attach = function(client, bufnr)
@@ -99,3 +100,7 @@ lspconfig.gopls.setup{
 
 require'lspconfig'.tailwindcss.setup{}
 
+--------------------------------------------------------------------------------------
+-- LSP Saga
+--------------------------------------------------------------------------------------
+saga.init_lsp_saga()

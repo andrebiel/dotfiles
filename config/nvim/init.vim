@@ -68,18 +68,16 @@ Plug 'hrsh7th/cmp-buffer'
 Plug 'hrsh7th/cmp-path'
 Plug 'hrsh7th/cmp-cmdline'
 Plug 'hrsh7th/nvim-cmp'
-" Snippets
 Plug 'SirVer/ultisnips'
 Plug 'honza/vim-snippets'
 Plug 'fhill2/telescope-ultisnips.nvim'
 Plug 'quangnguyen30192/cmp-nvim-ultisnips'
-" GIT
 Plug 'TimUntersberger/neogit'
 Plug 'evanleck/vim-svelte', {'branch': 'main'}
 Plug 'github/copilot.vim'
-" Files
 Plug 'ThePrimeagen/harpoon'
 Plug 'nvim-lualine/lualine.nvim'
+" Plug 'glepnir/lspsaga.nvim'
 call plug#end()
 
 " ------------------------------------------------------
@@ -113,13 +111,13 @@ nnoremap gd <cmd>Telescope lsp_definitions<cr>
 nnoremap gr <cmd>Telescope lsp_references<cr>
 nnoremap gi <cmd>Telescope lsp_implementations<cr>
 nnoremap <leader>ga <cmd>Telescope lsp_code_actions<cr>
-nnoremap <leader>ds <cmd>Telescope lsp_document_symbols<cr>
-nnoremap <leader>ws <cmd>Telescope lsp_workspace_symbols<cr>
 nnoremap <leader>si <cmd>lua vim.lsp.buf.signature_help()<cr>
 nnoremap <leader>rn <cmd>lua vim.lsp.buf.rename()<cr>
 nnoremap K <cmd>lua vim.lsp.buf.hover()<cr>
 nnoremap [d <cmd>lua vim.lsp.diagnostic.goto_prev()<CR>
 nnoremap ]d <cmd>lua vim.lsp.diagnostic.goto_next()<CR>
+nnoremap <leader>ds <cmd>Telescope lsp_document_symbols<cr>
+nnoremap <leader>ws <cmd>Telescope lsp_workspace_symbols<cr>
     
 " Telescope
 nnoremap <leader>ft <cmd>lua require('karllson.telescope').file_tree()<cr>
