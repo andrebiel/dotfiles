@@ -131,6 +131,9 @@ nnoremap <leader>fg <cmd>lua require('karllson.telescope').git_files()<cr>
 nnoremap <leader>ff <cmd>lua require('karllson.telescope').find_files()<cr>
 nnoremap <leader>gg <cmd>lua require('karllson.telescope').grep()<cr>
 
+" Neogit
+nnoremap <leader>it :Neogit<cr>
+
 " Nerdtree
 nnoremap <C-t> :NERDTreeToggle<CR>
 " nnoremap <leader>tf :NERDTreeFocus<CR>
