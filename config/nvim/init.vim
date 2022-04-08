@@ -78,6 +78,7 @@ Plug 'github/copilot.vim'
 Plug 'ThePrimeagen/harpoon'
 Plug 'nvim-lualine/lualine.nvim'
 Plug 'tami5/lspsaga.nvim'
+Plug 'leafOfTree/vim-svelte-plugin'
 call plug#end()
 
 " ------------------------------------------------------

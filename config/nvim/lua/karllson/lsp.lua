@@ -98,6 +98,11 @@ lspconfig.gopls.setup{
     capabilities = capabilities
 }
 
+require"lspconfig".svelte.setup{
+    on_attach = on_attach,
+    capabilities = capabilities
+}
+
 require'lspconfig'.tailwindcss.setup{}
 
 --------------------------------------------------------------------------------------
