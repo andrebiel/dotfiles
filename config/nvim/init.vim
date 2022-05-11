@@ -30,6 +30,8 @@ set completeopt=menuone,noselect
 set shortmess+=c " Don't pass messages to ins-completion-menu
 set guicursor=
 set colorcolumn=80
+set splitbelow
+set splitright
 
 " wild, Ignores
 set wildmode=longest,list,full
@@ -97,8 +99,6 @@ nnoremap <leader>jk :lua require("harpoon.term").gotoTerminal(2)<CR>
 
 nnoremap qqq :qa!<CR>
 nnoremap <C-s> :w!<CR>
-nnoremap <Leader>+ :vertical resize +5<CR>
-nnoremap <Leader>- :vertical resize -5<CR>
 " Lit shit from theprimeagen
 vnoremap J :m '>+1<CR>gv=gv
 vnoremap K :m '<-2<CR>gv=gv
@@ -130,6 +130,14 @@ nnoremap <leader>gc <cmd>lua require('karllson.telescope').grep_current()<cr>
 nnoremap <leader>fg <cmd>lua require('karllson.telescope').git_files()<cr>
 nnoremap <leader>ff <cmd>lua require('karllson.telescope').find_files()<cr>
 nnoremap <leader>gg <cmd>lua require('karllson.telescope').grep()<cr>
+
+" Splits
+nnoremap <C-J> <C-W><C-J>
+nnoremap <C-K> <C-W><C-K>
+nnoremap <C-L> <C-W><C-L>
+nnoremap <C-H> <C-W><C-H>
+nnoremap <Leader>+ :vertical resize +5<CR>
+nnoremap <Leader>- :vertical resize -5<CR>
 
 " Neogit
 nnoremap <leader>it :Neogit<cr>
