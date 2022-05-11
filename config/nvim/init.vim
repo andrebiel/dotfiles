@@ -42,7 +42,6 @@ set wildignore+=**/android/*
 set wildignore+=**/ios/*
 set wildignore+=**/.git/*
 
-
 filetype off
 syntax enable
 filetype plugin indent on
@@ -79,6 +78,7 @@ Plug 'ThePrimeagen/harpoon'
 Plug 'nvim-lualine/lualine.nvim'
 Plug 'tami5/lspsaga.nvim'
 Plug 'leafOfTree/vim-svelte-plugin'
+Plug 'marko-cerovac/material.nvim'
 call plug#end()
 
 " ------------------------------------------------------
@@ -158,7 +158,12 @@ let g:NERDTreeWinSize=80
 let g:NERDTreeWinPos = "right"
 
 " Theme
-colorscheme gruvbox
+let g:oceanic_next_terminal_bold = 1
+let g:oceanic_next_terminal_italic = 1
+colorscheme OceanicNext
+" colorscheme material
+" let g:material_style = "oceanic"
+" colorscheme gruvbox
 
 augroup highlight_yank
     autocmd!
