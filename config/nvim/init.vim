@@ -1,11 +1,11 @@
 :let mapleader = " "
 
 set path+=**
-set nocompatible             
+set nocompatible
 set encoding=UTF-8
 set number relativenumber
 set tabstop=4 softtabstop=4
-set shiftwidth=4    
+set shiftwidth=4
 set expandtab
 set autoindent
 set copyindent
@@ -32,7 +32,10 @@ set guicursor=
 set colorcolumn=80
 set splitbelow
 set splitright
-
+set list
+set listchars=tab:!·,trail:·
+" set list listchars=tab:❘⠀,extends:»,precedes:«
+" set listchars=eol:⏎,tab:␉·,trail:␠,nbsp:⎵
 " wild, Ignores
 set wildmode=longest,list,full
 set wildmenu
