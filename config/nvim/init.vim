@@ -77,6 +77,8 @@ Plug 'nvim-lualine/lualine.nvim'
 Plug 'tami5/lspsaga.nvim'
 Plug 'leafOfTree/vim-svelte-plugin'
 Plug 'marko-cerovac/material.nvim'
+Plug 'L3MON4D3/LuaSnip'
+Plug 'onsails/lspkind.nvim'
 call plug#end()
 
 " ------------------------------------------------------
@@ -174,10 +176,11 @@ augroup END
 lua require("karllson.lsp")
 lua require("karllson.telescope")
 lua require("karllson.treesitter")
-lua require("karllson.snippets")
 lua require("karllson.git")
 lua require("karllson.harpoon")
 lua require("karllson.statusline")
+lua require("karllson.cmp")
+lua require("karllson.snippets")
 
 let g:neoformat_php_phpcsfixer = {
     \ 'exe': 'php-cs-fixer',
