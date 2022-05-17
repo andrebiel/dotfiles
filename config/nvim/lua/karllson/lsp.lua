@@ -1,3 +1,7 @@
+local runtime_path = vim.split(package.path, ';')
+table.insert(runtime_path, "lua/?.lua")
+table.insert(runtime_path, "lua/?/init.lua")
+
 local lspconfig = require('lspconfig')
 local saga = require 'lspsaga'
 
@@ -23,6 +27,7 @@ end
 --------------------------------------------------------------------------------------
 local capabilities = require('cmp_nvim_lsp').update_capabilities(vim.lsp.protocol.make_client_capabilities())
 
+-- TYPESCRIPT
 lspconfig.tsserver.setup({
     filetypes = {
       "javascript",
@@ -36,27 +41,58 @@ lspconfig.tsserver.setup({
     capabilities = capabilities
 })
 
+-- PHP INTELE
 lspconfig.intelephense.setup({
     on_attach = on_attach,
     capabilities = capabilities
 })
 
+-- PYTHON
 lspconfig.pylsp.setup{
     on_attach = on_attach,
     capabilities = capabilities
 }
 
+-- GOLANG
 lspconfig.gopls.setup{
     on_attach = on_attach,
     capabilities = capabilities
 }
 
+-- SVELTE
 require"lspconfig".svelte.setup{
     on_attach = on_attach,
     capabilities = capabilities
 }
 
+-- TAILWIND
 require'lspconfig'.tailwindcss.setup{}
+
+-- LUA
+require'lspconfig'.sumneko_lua.setup {
+  settings = {
+    Lua = {
+      runtime = {
+        -- Tell the language server which version of Lua you're using (most likely LuaJIT in the case of Neovim)
+        version = 'LuaJIT',
+        -- Setup your lua path
+        path = runtime_path,
+      },
+      diagnostics = {
+        -- Get the language server to recognize the `vim` global
+        globals = {'vim'},
+      },
+      workspace = {
+        -- Make the server aware of Neovim runtime files
+        library = vim.api.nvim_get_runtime_file("", true),
+      },
+      -- Do not send telemetry data containing a randomized but unique identifier
+      telemetry = {
+        enable = false,
+      },
+    },
+  },
+}
 
 --------------------------------------------------------------------------------------
 -- LSP Saga

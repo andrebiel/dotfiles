@@ -35,6 +35,7 @@ source "$HOME/dotfiles/zsh/aliases"
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 
+export PATH="/opt/homebrew/opt/mysql-client/bin:$PATH"
+
 # Fig post block. Keep at the bottom of this file.
 . "$HOME/.fig/shell/zshrc.post.zsh"
-export PATH="/opt/homebrew/opt/mysql-client/bin:$PATH"

@@ -1,6 +1,5 @@
 local opt = vim.opt
 
--- opt.noswapfile = true
 -- opt.nobackup = true
 -- opt.nowritebackup = true
 -- opt.nohlsearch = true
@@ -46,6 +45,4 @@ opt.splitbelow = true
 opt.splitright = true
 opt.list = true
 opt.listchars = 'tab:!·,trail:·'
-
--- set list listchars=tab:❘⠀,extends:»,precedes:«
--- set listchars=eol:⏎,tab:␉·,trail:␠,nbsp:⎵
+opt.swapfile = false
