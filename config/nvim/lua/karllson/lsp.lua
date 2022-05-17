@@ -24,12 +24,12 @@ end
 --------------------------------------------------------------------------------------
   -- Setup nvim-cmp.
 cmp.setup({
-    snippet = {
-        -- REQUIRED - you must specify a snippet engine
-        expand = function(args)
-        vim.fn["UltiSnips#Anon"](args.body) -- For `ultisnips` users.
-        end,
-    },
+    -- snippet = {
+    --     -- REQUIRED - you must specify a snippet engine
+    --     expand = function(args)
+    --     vim.fn["UltiSnips#Anon"](args.body) -- For `ultisnips` users.
+    --     end,
+    -- },
 
     mapping = {
         ['<C-u>'] = cmp.mapping.scroll_docs(-4),
@@ -43,7 +43,6 @@ cmp.setup({
 
     sources = cmp.config.sources({
         { name = 'nvim_lsp' },
-        { name = 'ultisnips' }, -- For ultisnips users.
     }, {
         { name = 'buffer' },
     })

@@ -69,10 +69,6 @@ Plug 'hrsh7th/cmp-buffer'
 Plug 'hrsh7th/cmp-path'
 Plug 'hrsh7th/cmp-cmdline'
 Plug 'hrsh7th/nvim-cmp'
-Plug 'SirVer/ultisnips'
-Plug 'honza/vim-snippets'
-Plug 'fhill2/telescope-ultisnips.nvim'
-Plug 'quangnguyen30192/cmp-nvim-ultisnips'
 Plug 'TimUntersberger/neogit'
 Plug 'evanleck/vim-svelte', {'branch': 'main'}
 Plug 'github/copilot.vim'
@@ -146,13 +142,6 @@ nnoremap <leader>it :Neogit<cr>
 nnoremap <C-t> :NERDTreeToggle<CR>
 " nnoremap <leader>tf :NERDTreeFocus<CR>
 nnoremap <leader>tt :NERDTreeFind<CR>
-
-" Snippets
-let g:UltiSnipsExpandTrigger="<tab>"
-let g:UltiSnipsJumpForwardTrigger="<c-b>"
-let g:UltiSnipsJumpBackwardTrigger="<c-z>"
-let g:UltiSnipsSnippetDirectories=['~/dotfiles/snippets']
-nnoremap <leader>sn <cmd>lua require'telescope'.extensions.ultisnips.ultisnips{}<cr>
 
 " Copy to and from clipboard
 nnoremap <leader>yy "+y
