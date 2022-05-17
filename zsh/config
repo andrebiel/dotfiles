@@ -37,3 +37,4 @@ source "$HOME/dotfiles/zsh/aliases"
 
 # Fig post block. Keep at the bottom of this file.
 . "$HOME/.fig/shell/zshrc.post.zsh"
+export PATH="/opt/homebrew/opt/mysql-client/bin:$PATH"
