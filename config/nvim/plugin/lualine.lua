@@ -1,4 +1,4 @@
-function mysplit (inputstr, sep)
+local function mysplit (inputstr, sep)
         if sep == nil then
                 sep = "%s"
         end
@@ -10,8 +10,8 @@ function mysplit (inputstr, sep)
 end
 
 local function cwd()
-    dir = os.getenv("PWD") or io.popen("cd"):read()
-    folders = mysplit(dir, "/")
+    local dir = os.getenv("PWD") or io.popen("cd"):read()
+    local folders = mysplit(dir, "/")
 
     return folders[#folders+1-2] .. "/" .. folders[#folders]
 end

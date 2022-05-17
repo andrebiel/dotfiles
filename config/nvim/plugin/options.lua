@@ -46,3 +46,17 @@ opt.splitright = true
 opt.list = true
 opt.listchars = 'tab:!·,trail:·'
 opt.swapfile = false
+
+-- from awesome TJ
+-- https://github.com/tjdevries/config_manager/blob/8d56cc3e4eeaeb8087b3b56d0178741a7e2d924c/xdg_config/nvim/plugin/options.lua
+opt.formatoptions = opt.formatoptions
+  - "a" -- Auto formatting is BAD.
+  - "t" -- Don't auto format my code. I got linters for that.
+  + "c" -- In general, I like it when comments respect textwidth
+  + "q" -- Allow formatting comments w/ gq
+  - "o" -- O and o, don't continue comments
+  + "r" -- But do continue when pressing enter.
+  + "n" -- Indent past the formatlistpat, not underneath it.
+  + "j" -- Auto-remove comments if possible.
+  - "2" -- I'm not in gradeschool anymore
+opt.joinspaces = true

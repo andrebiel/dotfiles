@@ -41,18 +41,8 @@ call plug#end()
 " KeyMaps
 " ------------------------------------------------------
 
-" Harpoon
-nnoremap <leader>a :lua require("harpoon.mark").add_file()<CR>
-nnoremap <leader>je :lua require("harpoon.ui").toggle_quick_menu()<CR>
-nnoremap <leader>jf :lua require("harpoon.ui").nav_file(1)<CR>
-nnoremap <leader>jd :lua require("harpoon.ui").nav_file(2)<CR>
-nnoremap <leader>js :lua require("harpoon.ui").nav_file(3)<CR>
-nnoremap <leader>ja :lua require("harpoon.ui").nav_file(4)<CR>
-nnoremap <leader>jj :lua require("harpoon.term").gotoTerminal(1)<CR>
-nnoremap <leader>jk :lua require("harpoon.term").gotoTerminal(2)<CR>
-
 nnoremap qqq :qa!<CR>
-nnoremap <C-s> :w!<CR>
+noremap <C-s> :w!<CR>
 " Lit shit from theprimeagen
 vnoremap J :m '>+1<CR>gv=gv
 vnoremap K :m '<-2<CR>gv=gv
@@ -77,13 +67,13 @@ nnoremap <leader>ds <cmd>Telescope lsp_document_symbols<cr>
 nnoremap <leader>ws <cmd>Telescope lsp_workspace_symbols<cr>
     
 " Telescope
-nnoremap <leader>ft <cmd>lua require('karllson.telescope').file_tree()<cr>
-nnoremap <leader>fb <cmd>lua require('karllson.telescope').file_browser()<cr>
-nnoremap <leader>ct <cmd>lua require('karllson.telescope').current_tree()<cr>
-nnoremap <leader>gc <cmd>lua require('karllson.telescope').grep_current()<cr>
-nnoremap <leader>fg <cmd>lua require('karllson.telescope').git_files()<cr>
-nnoremap <leader>ff <cmd>lua require('karllson.telescope').find_files()<cr>
-nnoremap <leader>gg <cmd>lua require('karllson.telescope').grep()<cr>
+" nnoremap <leader>ft <cmd>lua require('karllson.telescope').file_tree()<cr>
+" nnoremap <leader>fb <cmd>lua require('karllson.telescope').file_browser()<cr>
+" nnoremap <leader>ct <cmd>lua require('karllson.telescope').current_tree()<cr>
+" nnoremap <leader>gc <cmd>lua require('karllson.telescope').grep_current()<cr>
+" nnoremap <leader>fg <cmd>lua require('karllson.telescope').git_files()<cr>
+" nnoremap <leader>ff <cmd>lua require('karllson.telescope').find_files()<cr>
+" nnoremap <leader>gg <cmd>lua require('karllson.telescope').grep()<cr>
 
 " Splits
 nnoremap <C-J> <C-W><C-J>
@@ -129,13 +119,6 @@ augroup KARLLSON
     au BufWritePre * try | undojoin | Neoformat | catch /E790/ | Neoformat | endtry
 augroup END
 
-lua require("karllson.lsp")
-lua require("karllson.telescope")
-lua require("karllson.treesitter")
-lua require("karllson.git")
-lua require("karllson.harpoon")
-lua require("karllson.statusline")
-lua require("karllson.cmp")
 lua require("karllson.snippets")
 
 let g:neoformat_php_phpcsfixer = {
