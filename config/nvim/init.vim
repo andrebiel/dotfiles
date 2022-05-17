@@ -1,52 +1,5 @@
 :let mapleader = " "
 
-set path+=**
-set nocompatible
-set encoding=UTF-8
-set number relativenumber
-set tabstop=4 softtabstop=4
-set shiftwidth=4
-set expandtab
-set autoindent
-set copyindent
-set ttimeoutlen=50 
-set timeoutlen=1000
-set smartindent
-set termguicolors
-set hidden
-set background=dark
-set nobackup
-set nowritebackup
-set noswapfile
-set cmdheight=1
-set updatetime=300
-set nohlsearch
-set noerrorbells
-set nowrap
-set incsearch
-set scrolloff=8
-set signcolumn=yes
-set completeopt=menuone,noselect
-set shortmess+=c " Don't pass messages to ins-completion-menu
-set guicursor=
-set colorcolumn=80
-set splitbelow
-set splitright
-set list
-set listchars=tab:!·,trail:·
-" set list listchars=tab:❘⠀,extends:»,precedes:«
-" set listchars=eol:⏎,tab:␉·,trail:␠,nbsp:⎵
-" wild, Ignores
-set wildmode=longest,list,full
-set wildmenu
-set wildignore+=*.pyc
-set wildignore+=*_build/*
-set wildignore+=**/coverage/*
-set wildignore+=**/node_modules/*
-set wildignore+=**/android/*
-set wildignore+=**/ios/*
-set wildignore+=**/.git/*
-
 filetype off
 syntax enable
 filetype plugin indent on
