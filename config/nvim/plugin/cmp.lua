@@ -1,5 +1,8 @@
 local cmp = require('cmp') -- autocomplete
 
+-- Don't show the dumb matching stuff.
+vim.opt.shortmess:append "c"
+
 local ok, lspkind = pcall(require, "lspkind")
 if not ok then
   return

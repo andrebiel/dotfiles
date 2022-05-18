@@ -65,15 +65,10 @@ nnoremap [d <cmd>Lspsaga diagnostic_jump_prev<CR>
 nnoremap ]d <cmd>Lspsaga diagnostic_jump_next<CR>
 nnoremap <leader>ds <cmd>Telescope lsp_document_symbols<cr>
 nnoremap <leader>ws <cmd>Telescope lsp_workspace_symbols<cr>
-    
-" Telescope
-" nnoremap <leader>ft <cmd>lua require('karllson.telescope').file_tree()<cr>
-" nnoremap <leader>fb <cmd>lua require('karllson.telescope').file_browser()<cr>
-" nnoremap <leader>ct <cmd>lua require('karllson.telescope').current_tree()<cr>
-" nnoremap <leader>gc <cmd>lua require('karllson.telescope').grep_current()<cr>
-" nnoremap <leader>fg <cmd>lua require('karllson.telescope').git_files()<cr>
-" nnoremap <leader>ff <cmd>lua require('karllson.telescope').find_files()<cr>
-" nnoremap <leader>gg <cmd>lua require('karllson.telescope').grep()<cr>
+
+" copilot
+imap <silent><script><expr> <C-Y> copilot#Accept("\<TAB>")
+let g:copilot_no_tab_map = v:true
 
 " Splits
 nnoremap <C-J> <C-W><C-J>
