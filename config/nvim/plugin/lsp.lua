@@ -70,7 +70,8 @@ require'lspconfig'.tailwindcss.setup{}
 
 -- LUA
 require'lspconfig'.sumneko_lua.setup {
-  settings = {
+    capabilities = capabilities,
+    settings = {
     Lua = {
       runtime = {
         -- Tell the language server which version of Lua you're using (most likely LuaJIT in the case of Neovim)
