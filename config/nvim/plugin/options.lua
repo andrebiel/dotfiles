@@ -44,7 +44,7 @@ opt.colorcolumn = '80'
 opt.splitbelow = true
 opt.splitright = true
 opt.list = true
-opt.listchars = 'tab:!·,trail:·'
+opt.listchars = 'tab:>·,trail:·'
 opt.swapfile = false
 
 -- from awesome TJ

@@ -24,3 +24,17 @@ local t = luasnip.text_node
 luasnip.add_snippets('typescriptreact', {
     s('cl', t({"console.log("}), i(1), t(")"))
 })
+
+luasnip.add_snippets('svelte', {
+    s('mod', t(
+        '<script context="module">' ..
+        '/** @type {import(\'@sveltejs/kit\').Load} */' ..
+        'export async function load({ params }) {' ..
+            'return {};' ..
+        '}' ..
+        '</script>'
+    ));
+})
+
+
+
