@@ -21,8 +21,11 @@ local t = luasnip.text_node
 -- local conds = require("luasnip.extras.expand_conditions")
 --
 
-luasnip.add_snippets('typescriptreact', {
-    s('cl', t({"console.log("}), i(1), t(")"))
+luasnip.add_snippets('all', {
+    s('cl', {
+        t({"console.log('log', "}), i(1),
+        t({");"}), i(0),
+    })
 })
 
 luasnip.add_snippets('svelte', {
@@ -35,6 +38,7 @@ luasnip.add_snippets('svelte', {
         '</script>'
     ));
 })
+
 
 
 
