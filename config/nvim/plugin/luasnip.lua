@@ -21,12 +21,11 @@ vim.keymap.set({ "i", "s" }, "<c-p>", function()
 end, { silent = true })
 
 -- <c-l> is selecting within a list of options.
--- This is useful for choice nodes (introduced in the forthcoming episode 2)
--- vim.keymap.set("i", "<c-l>", function()
---   if ls.choice_active() then
---     ls.change_choice(1)
---   end
--- end)
+vim.keymap.set("i", "<c-l>", function()
+  if ls.choice_active() then
+    ls.change_choice(1)
+  end
+end)
 
 -- vim.api.nvim_set_keymap("i", "<Tab>", "v:lua.tab_complete()", {expr = true})
 -- vim.api.nvim_set_keymap("s", "<Tab>", "v:lua.tab_complete()", {expr = true})

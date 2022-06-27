@@ -27,7 +27,6 @@ Plug 'hrsh7th/cmp-cmdline'
 Plug 'hrsh7th/nvim-cmp'
 Plug 'TimUntersberger/neogit'
 Plug 'evanleck/vim-svelte', {'branch': 'main'}
-Plug 'github/copilot.vim'
 Plug 'ThePrimeagen/harpoon'
 Plug 'nvim-lualine/lualine.nvim'
 Plug 'tami5/lspsaga.nvim'
@@ -65,10 +64,6 @@ nnoremap [d <cmd>Lspsaga diagnostic_jump_prev<CR>
 nnoremap ]d <cmd>Lspsaga diagnostic_jump_next<CR>
 nnoremap <leader>ds <cmd>Telescope lsp_document_symbols<cr>
 nnoremap <leader>ws <cmd>Telescope lsp_workspace_symbols<cr>
-
-" copilot
-imap <silent><script><expr> <C-Y> copilot#Accept("\<TAB>")
-let g:copilot_no_tab_map = v:true
 
 " Splits
 nnoremap <C-J> <C-W><C-J>

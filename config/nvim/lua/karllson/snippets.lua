@@ -4,6 +4,9 @@ local luasnip = require 'luasnip'
 local s = luasnip.snippet
 local i = luasnip.insert_node
 local t = luasnip.text_node
+local c = luasnip.choice_node
+local fmt = require("luasnip.extras.fmt").fmt
+
 -- local sn = ls.snippet_node
 -- local f = ls.function_node
 -- local c = ls.choice_node
@@ -15,7 +18,6 @@ local t = luasnip.text_node
 -- local m = require("luasnip.extras").match
 -- local n = require("luasnip.extras").nonempty
 -- local dl = require("luasnip.extras").dynamic_lambda
--- local fmt = require("luasnip.extras.fmt").fmt
 -- local fmta = require("luasnip.extras.fmt").fmta
 -- local types = require("luasnip.util.types")
 -- local conds = require("luasnip.extras.expand_conditions")
@@ -37,6 +39,23 @@ luasnip.add_snippets('svelte', {
         '}' ..
         '</script>'
     ));
+})
+
+luasnip.add_snippets("svelte", {
+	s(
+		"script",
+		fmt(
+			[[
+                <script {}>
+                    {}
+                </script>
+            ]],
+			{
+				c(1, { t('lang="ts"'), t('context="module"') }),
+				i(0),
+			}
+		)
+	),
 })
 
 
