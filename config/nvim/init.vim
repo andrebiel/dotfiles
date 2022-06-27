@@ -109,8 +109,6 @@ augroup KARLLSON
     au BufWritePre * try | undojoin | Neoformat | catch /E790/ | Neoformat | endtry
 augroup END
 
-lua require("karllson.snippets")
-
 let g:neoformat_php_phpcsfixer = {
     \ 'exe': 'php-cs-fixer',
     \ 'args': ['fix', '-q'],
@@ -120,3 +118,4 @@ let g:neoformat_php_phpcsfixer = {
 let g:neoformat_enabled_php = ['phpcsfixer']
 let g:neoformat_enabled_typescript = ['prettier']
 
+lua require('karllson.init');
