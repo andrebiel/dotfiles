@@ -16,7 +16,6 @@ Plug 'tpope/vim-commentary'
 Plug 'nvim-treesitter/nvim-treesitter', {'do': ':TSUpdate'}  
 Plug 'gruvbox-community/gruvbox'
 Plug 'mhartington/oceanic-next'
-Plug 'preservim/nerdtree'
 Plug 'neovim/nvim-lspconfig'
 Plug 'sbdchd/neoformat'
 Plug 'ryanoasis/vim-devicons'
@@ -34,11 +33,17 @@ Plug 'leafOfTree/vim-svelte-plugin'
 Plug 'marko-cerovac/material.nvim'
 Plug 'L3MON4D3/LuaSnip'
 Plug 'onsails/lspkind.nvim'
+Plug 'kyazdani42/nvim-web-devicons'
+Plug 'kyazdani42/nvim-tree.lua'
 call plug#end()
 
 " ------------------------------------------------------
 " KeyMaps
 " ------------------------------------------------------
+" nvim-tree
+nnoremap <C-t> :NvimTreeToggle<CR>
+nnoremap <leader>tt :NvimTreeFindFile<CR>
+":NvimTreeCollapse Collapses the nvim-tree recursively.
 
 nnoremap qqq :qa!<CR>
 noremap <C-s> :w!<CR>
@@ -75,11 +80,6 @@ nnoremap <Leader>- :vertical resize -5<CR>
 
 " Neogit
 nnoremap <leader>it :Neogit<cr>
-
-" Nerdtree
-nnoremap <C-t> :NERDTreeToggle<CR>
-" nnoremap <leader>tf :NERDTreeFocus<CR>
-nnoremap <leader>tt :NERDTreeFind<CR>
 
 " Copy to and from clipboard
 nnoremap <leader>yy "+y
