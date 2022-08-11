@@ -37,5 +37,7 @@ source "$HOME/dotfiles/zsh/aliases"
 
 export PATH="/opt/homebrew/opt/mysql-client/bin:$PATH"
 
+. /opt/homebrew/opt/asdf/libexec/asdf.sh
+
 # Fig post block. Keep at the bottom of this file.
 [[ -f "$HOME/.fig/shell/zshrc.post.zsh" ]] && . "$HOME/.fig/shell/zshrc.post.zsh"
