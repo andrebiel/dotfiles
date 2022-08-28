@@ -1,7 +1,6 @@
 local packer = require("packer")
-local use = packer.use
 
-packer.startup(function()
+packer.startup(function(use)
     use "wbthomason/packer.nvim" -- this is essential.
 
     use("marko-cerovac/material.nvim")
@@ -27,7 +26,7 @@ packer.startup(function()
     use("hrsh7th/cmp-cmdline")
     use("hrsh7th/nvim-cmp")
     use("TimUntersberger/neogit")
-    use("evanleck/vim-svelte", branch = "main")
+    -- use("evanleck/vim-svelte", branch = "main")
     use("ThePrimeagen/harpoon")
     use("nvim-lualine/lualine.nvim")
     use("tami5/lspsaga.nvim")
