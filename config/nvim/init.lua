@@ -1,4 +1,4 @@
-local init = require("andrebiel.packer.init")
+require("andrebiel.packer.init")
 
 vim.g.mapleader = " "
 

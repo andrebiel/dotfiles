@@ -8,6 +8,10 @@ vim.g.completion_matching_strategy_list = { "exact", "substring", "fuzzy" }
 vim.g.vim_svelte_plugin_use_typescript = 1
 vim.g.vim_svelte_plugin_use_sass = 1
 
+-- nerdtree
+vim.g.NERDTreeWinSize=80
+vim.g.NERDTreeWinPos = "right"
+
 -- php
 -- vim.g.neoformat_enabled_php = ['phpcsfixer']
 
