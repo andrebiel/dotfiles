@@ -1,5 +1,5 @@
-require("karllson.snippets.javascript")
-require("karllson.snippets.svelte")
+require("andrebiel.snippets.javascript")
+require("andrebiel.snippets.svelte")
 
 local ls = require("luasnip")
 

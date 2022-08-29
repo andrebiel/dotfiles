@@ -1,6 +1,6 @@
 local ls = require("luasnip")
 local fmt = require("luasnip.extras.fmt").fmt
-local h = require("karllson.snippets.helpers")
+local h = require("andrebiel.snippets.helpers")
 
 local s = ls.s
 local i = ls.insert_node

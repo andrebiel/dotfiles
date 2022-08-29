@@ -1,7 +1,7 @@
 local init = require("andrebiel.packer.init")
 
--- if init() then
--- 	return
--- end
+vim.g.mapleader = " "
+
 
 require("andrebiel.packer.plugins")
+require("andrebiel.init")
