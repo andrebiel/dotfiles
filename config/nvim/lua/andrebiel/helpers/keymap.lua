@@ -24,6 +24,7 @@ end
 M.nnoremap = createNoRemap("n")
 M.inoremap = createNoRemap("i")
 M.vnoremap = createNoRemap("v")
+M.tnoremap = createNoRemap("t")
 M.nmap = createMap("n")
 M.imap = createMap("i")
 M.vmap = createMap("v")

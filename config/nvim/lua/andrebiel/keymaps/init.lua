@@ -42,3 +42,6 @@ key.nnoremap('<leader>yy', '"+y')
 key.vnoremap('<leader>yy', '"+y')
 key.nnoremap('<leader>pp', '"+p')
 key.vnoremap('<leader>pp', '"+p')
+
+-- Terminal escape
+key.tnoremap('<Esc>', '<C-\\><C-n>');
