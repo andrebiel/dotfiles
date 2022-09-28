@@ -7,8 +7,8 @@ key.nnoremap("qqq", key.exec_command(":qa!"))
 key.nnoremap("<C-s>", key.exec_command(":w!"))
 
 -- Lit shit from theprimeagen
-key.vnoremap("J", key.exec_command(":m", ">+1<CR>gv=gv"))
-key.vnoremap("K", key.exec_command(":m", "<-2<CR>gv=gv"))
+key.vnoremap("J", ":m >+1<CR>gv=gv")
+key.vnoremap("K", ":m <-2<CR>gv=gv")
 key.nnoremap("Y", "yg$")
 key.nnoremap("n", "nzzzv")
 key.nnoremap("N", "Nzzzv")
