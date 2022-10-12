@@ -45,3 +45,9 @@ key.vnoremap('<leader>pp', '"+p')
 
 -- Terminal escape
 key.tnoremap('<Esc>', '<C-\\><C-n>');
+
+-- Test
+key.nnoremap('<leader>tn', key.exec_command(":TestNearest"));
+key.nnoremap('<leader>tf', key.exec_command(":TestFile"));
+key.nnoremap('<leader>ts', key.exec_command(":TestSuite"));
+key.nnoremap('<leader>tl', key.exec_command(":TestLast"));

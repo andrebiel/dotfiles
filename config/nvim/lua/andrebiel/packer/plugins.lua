@@ -35,4 +35,5 @@ packer.startup(function(use)
     use "onsails/lspkind.nvim"
     use "kyazdani42/nvim-web-devicons"
     use "kyazdani42/nvim-tree.lua"
+    use "vim-test/vim-test"
 end)

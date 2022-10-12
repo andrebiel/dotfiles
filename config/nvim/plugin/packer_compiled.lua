@@ -213,6 +213,11 @@ _G.packer_plugins = {
     loaded = true,
     path = "/Users/andrebiel/.local/share/nvim/site/pack/packer/start/vim-svelte-plugin",
     url = "https://github.com/leafOfTree/vim-svelte-plugin"
+  },
+  ["vim-test"] = {
+    loaded = true,
+    path = "/Users/andrebiel/.local/share/nvim/site/pack/packer/start/vim-test",
+    url = "https://github.com/vim-test/vim-test"
   }
 }
 
