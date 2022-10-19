@@ -8,7 +8,7 @@ local saga = require 'lspsaga'
 local root_pattern = lspconfig.util.root_pattern
 local on_attach = function(client, bufnr)
 
-if client.resolved_capabilities.document_highlight then
+if client.server_capabilities.document_highlight then
     vim.api.nvim_exec([[
       hi LspReferenceRead cterm=bold ctermbg=red guibg=#4e4e4e
       hi LspReferenceText cterm=bold ctermbg=red guibg=#4e4e4e
@@ -25,7 +25,7 @@ end
 --------------------------------------------------------------------------------------
 -- Server Setups
 --------------------------------------------------------------------------------------
-local capabilities = require('cmp_nvim_lsp').update_capabilities(vim.lsp.protocol.make_client_capabilities())
+local capabilities = require('cmp_nvim_lsp').default_capabilities(vim.lsp.protocol.make_client_capabilities())
 
 -- TYPESCRIPT
 lspconfig.tsserver.setup({
