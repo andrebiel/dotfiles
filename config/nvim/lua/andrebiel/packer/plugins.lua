@@ -24,7 +24,6 @@ packer.startup(function(use)
     use "hrsh7th/cmp-path"
     use "hrsh7th/cmp-cmdline"
     use "hrsh7th/nvim-cmp"
-    use "TimUntersberger/neogit"
     use {"evanleck/vim-svelte", branch = "main"}
     use "ThePrimeagen/harpoon"
     use "nvim-lualine/lualine.nvim"
