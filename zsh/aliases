@@ -11,3 +11,4 @@ alias gd="git diff"
 alias ports="lsof -iTCP -sTCP:LISTEN -P"
 alias pest="./vendor/bin/pest"
 alias sail='[ -f sail ] && bash sail || bash vendor/bin/sail'
+alias pn='pnpm'

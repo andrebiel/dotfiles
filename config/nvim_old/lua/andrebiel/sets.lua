@@ -40,7 +40,6 @@ vim.opt.signcolumn = "yes"
 
 vim.opt.list = true
 vim.opt.listchars = { tab = "|-", trail = "·" }
-vim.opt.guicursor = ''
 
 vim.opt.splitright = true
 

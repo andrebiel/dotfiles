@@ -1,6 +1,5 @@
-require('andrebiel.snippets');
+--require('andrebiel.snippets');
 require('andrebiel.sets')
-require('andrebiel.theme')
 require('andrebiel.variables')
 require('andrebiel.keymaps')
-require('andrebiel.autocommands.init')
+require('andrebiel.autocommands')
