@@ -3,6 +3,7 @@ local MyGroup = augroup('AndreBiel', {})
 
 local autocmd = vim.api.nvim_create_autocmd
 local yank_group = augroup('HighlightYank', {})
+local fmt_group = augroup("fmt", { clear = true })
 
 autocmd('TextYankPost', {
     group = yank_group,
@@ -27,3 +28,12 @@ autocmd('DiagnosticChanged', {
     vim.pretty_print(diagnostics)
   end,
 })
+
+autocmd(
+    { "BufWritePre" },
+    {
+        pattern = { "*" },
+        command = "try | undojoin | Neoformat | catch /E790/ | Neoformat | endtry",
+        group = fmt_group
+    }
+)
