@@ -25,3 +25,4 @@ vim.keymap.set("n", '<leader>yy', '"+y')
 vim.keymap.set("v", '<leader>yy', '"+y')
 vim.keymap.set("n", '<leader>pp', '"+p')
 vim.keymap.set("v", '<leader>pp', '"+p')
+

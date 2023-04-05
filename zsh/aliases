@@ -8,6 +8,7 @@ alias python="python3"
 alias gs="git status"
 alias gl="git log"
 alias gd="git diff"
+alias grc="git rebase --continue"
 alias ports="lsof -iTCP -sTCP:LISTEN -P"
 alias pest="./vendor/bin/pest"
 alias sail='[ -f sail ] && bash sail || bash vendor/bin/sail'
