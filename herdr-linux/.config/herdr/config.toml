@@ -24,6 +24,18 @@ new_worktree = "prefix+t"
 directory = "~/dev/worktrees"
 
 [[keys.command]]
+key = "prefix+shift+e"
+type = "shell"
+description = "open Neovim in a new tab"
+command = '''
+created=$("$HERDR_BIN_PATH" tab create --workspace "$HERDR_ACTIVE_WORKSPACE_ID" --cwd "$HERDR_ACTIVE_PANE_CWD" --label Neovim --no-focus) || exit 1
+pane_id=$(printf '%s' "$created" | jq -er '.result.root_pane.pane_id') || exit 1
+tab_id=$(printf '%s' "$created" | jq -er '.result.tab.tab_id') || exit 1
+"$HERDR_BIN_PATH" pane run "$pane_id" nvim &&
+  "$HERDR_BIN_PATH" tab focus "$tab_id"
+'''
+
+[[keys.command]]
 key = "prefix+f"
 type = "popup"
 # SSH-started servers may not include ~/.local/bin in PATH; the picker also needs nvim.

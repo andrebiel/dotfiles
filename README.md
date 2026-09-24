@@ -362,6 +362,9 @@ hosting the repository. On SSH hosts, `~` is the remote user's home directory.
 Both macOS and Linux profiles configure this location. Existing worktrees
 elsewhere remain where they are and can still be opened through Herdr.
 Use `Ctrl+Space`, then `c` for another tab in the current workspace and directory.
+Press `Ctrl+Space`, release, then `Shift+E` to open and focus a new Neovim tab
+in the current workspace, starting in the active pane's directory. From Neovim,
+use `Space`, then `ff` to find a file. Plain prefix `e` still edits scrollback.
 
 Press `Ctrl+Space`, then `d` to close a workspace without removing its checkout.
 Press `Ctrl+Space`, then `Shift+D` on a worktree workspace to run Herdr's
