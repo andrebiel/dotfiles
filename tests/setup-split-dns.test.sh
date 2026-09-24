@@ -14,7 +14,9 @@ expect_failure() {
   printf 'ok - %s rejected\n' "$label"
 }
 
-"$script" --help | grep -q '^Usage: .* --profile NAME DOMAIN NAMESERVER' || { echo 'not ok - --help' >&2; exit 1; }
+# Capture first: grep -q closing the pipe early would surface as SIGPIPE under pipefail.
+help_output="$("$script" --help)"
+grep -q '^Usage: .* --profile NAME DOMAIN NAMESERVER' <<<"$help_output" || { echo 'not ok - --help' >&2; exit 1; }
 printf 'ok - --help prints usage\n'
 if grep -Eq '\b([0-9]{1,3}\.){3}[0-9]{1,3}\b|nameserver [0-9]|\.(xx|local|lan|internal)\b' "$script"; then
   echo 'not ok - setup-split-dns hardcodes an address' >&2; exit 1
