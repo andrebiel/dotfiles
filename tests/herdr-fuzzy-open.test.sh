@@ -82,7 +82,7 @@ run_helper() {
   HERDR_ACTIVE_WORKSPACE_ID="${HERDR_TEST_ACTIVE_WORKSPACE_ID-}" \
   HERDR_BIN_PATH="$fake_bin/herdr" \
   HERDR_ACTIVE_PANE_CWD="$search_root" \
-  HERDR_RG_BIN="$fake_bin/rg" \
+  HERDR_RG_BIN="${HERDR_TEST_REAL_RG:-$fake_bin/rg}" \
   HERDR_FZF_BIN="$fake_bin/fzf" \
   HERDR_OPEN_BIN="$fake_bin/open" \
   HERDR_EDITOR_BIN="$fake_bin/nvim" \
@@ -163,6 +163,24 @@ HERDR_TEST_WORKSPACE_ID=stale-workspace HERDR_TEST_ACTIVE_WORKSPACE_ID=popup-wor
 assert_argument popup-workspace "$herdr_capture"
 ! grep -Fqx stale-workspace "$herdr_capture" || fail 'popup used an inherited workspace instead of its caller'
 printf 'ok - popup workspace takes precedence over inherited pane context\n'
+
+# Exercise file discovery with real ignore rules, without opening any files.
+git -C "$search_root" init -q
+printf '.env\n.env.*\n' >"$search_root/.gitignore"
+: >"$search_root/.env"
+: >"$search_root/notes/.env.local"
+HERDR_TEST_REAL_RG="$(command -v rg)" run_helper 1
+python3 - "$fzf_input" <<'PY'
+import sys
+from pathlib import Path
+
+paths = set(Path(sys.argv[1]).read_bytes().split(b'\0'))
+assert b'.env' in paths, 'ignored .env is missing from the finder'
+assert b'notes/.env.local' in paths, 'nested .env.local is missing from the finder'
+assert b'README' in paths, 'ordinary files are missing from the finder'
+assert not any(p.startswith(b'.git/') for p in paths), 'Git internals appear in the finder'
+PY
+printf 'ok - ignored environment files are discoverable and Git internals are excluded\n'
 
 # Both Stow packages must provide the same routing behavior.
 repo_dir="${DOTFILES_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"

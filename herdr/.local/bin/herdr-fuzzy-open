@@ -37,7 +37,8 @@ trap 'exit 143' TERM
 set +e
 (
   cd "$search_root"
-  "$rg_bin" --files --hidden --null |
+  # This is a file browser: include ignored files such as .env as well.
+  "$rg_bin" --files --hidden --no-ignore --glob '!.git' --null |
     "$fzf_bin" \
       --read0 \
       --print0 \
