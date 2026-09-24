@@ -1,0 +1,49 @@
+{
+  "$schema": "https://raw.githubusercontent.com/JanDeDobbeleer/oh-my-posh/main/themes/schema.json",
+  "version": 4,
+  "final_space": false,
+  "palette": {
+    "blue": "#89B4FA",
+    "green": "#A6E3A1",
+    "peach": "#FAB387",
+    "lavender": "#B4BEFE"
+  },
+  "blocks": [
+    {
+      "type": "prompt",
+      "alignment": "left",
+      "segments": [
+        {
+          "type": "session",
+          "style": "plain",
+          "foreground": "p:green",
+          "foreground_templates": [
+            "{{ if .SSHSession }}p:peach{{ end }}"
+          ],
+          "template": " {{ if .SSHSession }}SSH{{ else }}LOCAL{{ end }} {{ .UserName }}@{{ .HostName }} "
+        },
+        {
+          "type": "path",
+          "style": "plain",
+          "foreground": "p:lavender",
+          "template": "   {{ .Path }} ",
+          "options": {
+            "style": "full",
+            "home_icon": "~"
+          }
+        },
+        {
+          "type": "git",
+          "style": "plain",
+          "foreground": "p:blue",
+          "template": "  {{ .HEAD }}{{ if .BranchStatus }} {{ .BranchStatus }}{{ end }}{{ if .Staging.Changed }} ●{{ .Staging.String }}{{ end }}{{ if .Working.Changed }} ✚{{ .Working.String }}{{ end }} ",
+          "options": {
+            "fetch_status": true,
+            "fetch_upstream_icon": false,
+            "branch_icon": ""
+          }
+        }
+      ]
+    }
+  ]
+}

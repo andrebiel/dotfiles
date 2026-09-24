@@ -1,0 +1,24 @@
+{
+  "$schema": "https://raw.githubusercontent.com/JanDeDobbeleer/oh-my-posh/main/themes/schema.json",
+  "extends": "base.omp.json",
+  "version": 4,
+  "final_space": false,
+  "palette": {
+    "peach": "#FAB387"
+  },
+  "blocks": [
+    {
+      "type": "prompt",
+      "alignment": "left",
+      "segments": [
+        {
+          "type": "claude",
+          "alias": "claude_session",
+          "style": "plain",
+          "foreground": "p:peach",
+          "template": " 󰯉 {{ .Model.DisplayName }} {{ .FormattedCost }} "
+        }
+      ]
+    }
+  ]
+}

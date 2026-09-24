@@ -1,0 +1,27 @@
+{
+  "$schema": "https://raw.githubusercontent.com/JanDeDobbeleer/oh-my-posh/main/themes/schema.json",
+  "extends": "base.omp.json",
+  "version": 4,
+  "final_space": true,
+  "palette": {
+    "green": "#A6E3A1",
+    "red": "#F38BA8"
+  },
+  "blocks": [
+    {
+      "type": "prompt",
+      "alignment": "left",
+      "segments": [
+        {
+          "type": "text",
+          "style": "plain",
+          "foreground": "p:green",
+          "foreground_templates": [
+            "{{ if gt .Code 0 }}p:red{{ end }}"
+          ],
+          "template": "\n❯"
+        }
+      ]
+    }
+  ]
+}

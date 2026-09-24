@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+[[ "$(uname -s)" == Linux ]] || { echo 'Use brew install lazygit on macOS.' >&2; exit 1; }
+case "$(uname -m)" in
+  x86_64) lazygit_arch=x86_64 ;;
+  aarch64|arm64) lazygit_arch=arm64 ;;
+  *) echo 'Supported architectures: x86_64 and arm64' >&2; exit 1 ;;
+esac
+lazygit_version=0.65.1
+lazygit_work="$(mktemp -d)"
+trap 'rm -rf "$lazygit_work"' EXIT
+lazygit_archive="lazygit_${lazygit_version}_linux_${lazygit_arch}.tar.gz"
+lazygit_release="https://github.com/jesseduffield/lazygit/releases/download/v$lazygit_version"
+curl -fsSL --retry 3 "$lazygit_release/$lazygit_archive" -o "$lazygit_work/$lazygit_archive"
+curl -fsSL --retry 3 "$lazygit_release/checksums.txt" -o "$lazygit_work/checksums.txt"
+(
+  cd "$lazygit_work"
+  awk -v archive="$lazygit_archive" '$2 == archive { print }' checksums.txt > selected-checksum.txt
+  test "$(wc -l < selected-checksum.txt)" -eq 1
+  sha256sum --check selected-checksum.txt
+)
+tar -xzf "$lazygit_work/$lazygit_archive" -C "$lazygit_work" lazygit
+"$lazygit_work/lazygit" --version
+mkdir -p "$HOME/.local/bin"
+install -m 755 "$lazygit_work/lazygit" "$HOME/.local/bin/lazygit"

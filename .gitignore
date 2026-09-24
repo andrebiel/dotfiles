@@ -1,0 +1,16 @@
+.DS_Store
+*.bak
+
+# Never allow local SSH material into the repository.
+**/.ssh/agent/
+**/.ssh/conductor_config
+**/.ssh/conductor_config.d/
+**/.ssh/id_*
+**/.ssh/known_hosts*
+# Per-machine hosts are included from here and never tracked.
+**/.ssh/config.d/
+
+# Rendered secrets always live outside the repository. These patterns are
+# defense in depth if somebody overrides the output path.
+secrets/*.generated
+secrets/secrets.zsh

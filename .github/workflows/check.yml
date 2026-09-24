@@ -1,0 +1,61 @@
+name: Checks
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: macos-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out full history
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install check dependencies
+        run: |
+          brew install \
+            bun \
+            gitleaks \
+            herdr \
+            jq \
+            neovim \
+            stow \
+            jandedobbeleer/oh-my-posh/oh-my-posh
+
+      - name: Run repository checks
+        run: |
+          check_home="$RUNNER_TEMP/dotfiles-check-home"
+          mkdir -p "$check_home"
+          HOME="$check_home" \
+            XDG_CACHE_HOME="$check_home/.cache" \
+            XDG_DATA_HOME="$check_home/.local/share" \
+            XDG_STATE_HOME="$check_home/.local/state" \
+            ./scripts/check
+
+      - name: Scan Git history for secrets
+        run: gitleaks git --redact --verbose --log-opts="--all" .
+
+  linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out full history
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install and verify Linux profile without private credentials
+        run: ./bootstrap all --platform linux --without-secrets
+      - name: Run repository checks
+        run: |
+          export PATH="$HOME/.local/bin:$HOME/.bun/bin:$PATH"
+          ./scripts/check

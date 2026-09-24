@@ -1,0 +1,262 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+
+bash -n "$DOTFILES_DIR/bootstrap"
+bash -n "$DOTFILES_DIR/scripts/lib/platform.sh"
+bash -n "$DOTFILES_DIR/scripts/install-linux"
+bash -n "$DOTFILES_DIR/scripts/install-tree-sitter"
+bash -n "$DOTFILES_DIR/scripts/install-lazygit"
+bash -n "$DOTFILES_DIR/scripts/setup-split-dns"
+"$DOTFILES_DIR/tests/setup-split-dns.test.sh"
+bash -n "$DOTFILES_DIR/scripts/install-herdr-skill"
+python3 "$DOTFILES_DIR/tests/herdr-skill.test.py"
+"$DOTFILES_DIR/tests/platform.test.sh"
+bash -n "$DOTFILES_DIR/scripts/import-secrets"
+"$DOTFILES_DIR/tests/bootstrap-link.test.sh"
+"$DOTFILES_DIR/tests/secrets-render.test.sh"
+"$DOTFILES_DIR/tests/import-secrets.test.sh"
+"$DOTFILES_DIR/tests/launchagent.test.sh"
+if [[ "$(uname -s)" == Darwin ]]; then
+  plutil -lint "$DOTFILES_DIR/ai-usage/Library/LaunchAgents/dev.andrebiel.ai-usage.plist" >/dev/null
+else
+  python3 -c 'import plistlib,sys; plistlib.load(open(sys.argv[1], "rb"))' "$DOTFILES_DIR/ai-usage/Library/LaunchAgents/dev.andrebiel.ai-usage.plist"
+fi
+zsh -n "$DOTFILES_DIR/zsh/.zshenv"
+bash -n "$DOTFILES_DIR/zsh/.config/zsh/environment.sh"
+zsh -n "$DOTFILES_DIR/zsh/.config/zsh/environment.sh"
+python3 "$DOTFILES_DIR/tests/shell-environment.test.py"
+zsh -n "$DOTFILES_DIR/zsh/.zprofile"
+zsh -n "$DOTFILES_DIR/zsh/.zshrc"
+zsh -n "$DOTFILES_DIR/zsh/.config/zsh/homebrew.zsh"
+jq -e . "$DOTFILES_DIR/zsh/.config/oh-my-posh/base.omp.json" >/dev/null
+jq -e . "$DOTFILES_DIR/zsh/.config/oh-my-posh/shell.omp.json" >/dev/null
+jq -e . "$DOTFILES_DIR/zsh/.config/oh-my-posh/claude.omp.json" >/dev/null
+
+if command -v oh-my-posh >/dev/null 2>&1; then
+  (
+    cd "${TMPDIR:-/tmp}"
+    oh-my-posh print primary --plain --shell zsh --pwd "$DOTFILES_DIR" \
+      --config "$DOTFILES_DIR/zsh/.config/oh-my-posh/shell.omp.json" >/dev/null
+
+    claude_sample='{"cwd":"/tmp/project","session_id":"test","model":{"id":"claude-test","display_name":"Claude Test"},"cost":{"total_cost_usd":0.125},"context_window":{"total_input_tokens":100,"total_output_tokens":20,"context_window_size":200000}}'
+    claude_output="$(printf '%s' "$claude_sample" | oh-my-posh claude \
+      --config "$DOTFILES_DIR/zsh/.config/oh-my-posh/claude.omp.json")"
+    grep -Eq 'Claude Test.*\$0\.12' <<<"$claude_output"
+  )
+fi
+
+XDG_CONFIG_HOME="$DOTFILES_DIR/nvim/.config" NVIM_LOG_FILE=/dev/null \
+  nvim --headless --noplugin -i NONE \
+  -u "$DOTFILES_DIR/nvim/.config/nvim/init.lua" \
+  +':if get(g:, "colors_name", "") !=# "catppuccin" | cquit | endif' \
+  +':lua assert(vim.fn.maparg("<leader>yyy", "n") == [["+yy]])' \
+  +':lua assert(vim.fn.maparg("<leader>yyy", "x") == [["+y]])' \
+  +qa
+
+if command -v herdr >/dev/null 2>&1; then
+  for package in herdr herdr-linux; do
+    HERDR_CONFIG_PATH="$DOTFILES_DIR/$package/.config/herdr/config.toml" \
+      herdr config check >/dev/null
+    grep -Fqx 'shell_mode = "login"' "$DOTFILES_DIR/$package/.config/herdr/config.toml"
+  done
+  grep -Fqx 'default_shell = "/bin/zsh"' "$DOTFILES_DIR/herdr/.config/herdr/config.toml"
+  grep -Fqx 'default_shell = "/usr/bin/zsh"' "$DOTFILES_DIR/herdr-linux/.config/herdr/config.toml"
+fi
+
+bun test "$DOTFILES_DIR/tests/ai-usage.test.ts"
+
+secret_pattern="(sk-ant-|sb_pat_|ntn_[A-Za-z0-9]|GOCSPX-|-----BEGIN (OPENSSH|RSA|EC) PRIVATE KEY-----|export[[:space:]]+[A-Z_]*(TOKEN|SECRET|API_KEY)=[\"']?[A-Za-z0-9_-]{20,})"
+if grep -REn --exclude-dir=.git --exclude=check \
+  "$secret_pattern" "$DOTFILES_DIR"; then
+  printf 'error: possible plaintext secret found\n' >&2
+  exit 1
+fi
+
+if git -C "$DOTFILES_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  if git -C "$DOTFILES_DIR" grep --cached -n -I -E "$secret_pattern" -- \
+    . ':(exclude)scripts/check'; then
+    printf 'error: possible plaintext secret found in the Git index\n' >&2
+    exit 1
+  fi
+
+  if git -C "$DOTFILES_DIR" rev-parse --verify HEAD >/dev/null 2>&1 &&
+    git -C "$DOTFILES_DIR" log -p --all -- . ':(exclude)scripts/check' |
+      grep -E "$secret_pattern" >/dev/null; then
+    printf 'error: possible plaintext secret found in Git history\n' >&2
+    exit 1
+  fi
+fi
+
+grep -q '^Include ~/.ssh/conductor_config$' "$DOTFILES_DIR/ssh/.ssh/config"
+grep -Fqx 'Include ~/.ssh/config.d/*' "$DOTFILES_DIR/ssh/.ssh/config"
+# Hosts, addresses, users and remote commands belong in ~/.ssh/config.d/, never here.
+if grep -Ein '^[[:space:]]*(Match|Host|HostName|User|IdentityFile|RemoteCommand)([[:space:]]|=)' "$DOTFILES_DIR/ssh/.ssh/config"; then
+  printf 'error: ssh/.ssh/config must only contain Include directives and comments\n' >&2
+  exit 1
+fi
+# No private IP addresses anywhere in the tree; loopback and the RFC 5737
+# documentation range used by README examples are the only exceptions.
+if grep -REn --exclude-dir=.git --exclude=check --exclude=.DS_Store \
+    '\b([0-9]{1,3}\.){3}[0-9]{1,3}\b' "$DOTFILES_DIR" |
+    grep -Ev '\b(127\.0\.0\.1|0\.0\.0\.0|192\.0\.2\.[0-9]{1,3})\b'; then
+  printf 'error: IP address found in the tree; keep hosts in ~/.ssh/config.d/ and pass nameservers to setup-split-dns\n' >&2
+  exit 1
+fi
+grep -q 'op://Private/Dotfiles/' "$DOTFILES_DIR/secrets/secrets.zsh.tpl"
+grep -q 'vim.cmd.colorscheme("catppuccin")' "$DOTFILES_DIR/nvim/.config/nvim/init.lua"
+grep -q '^vim.g.mapleader = " "$' "$DOTFILES_DIR/nvim/.config/nvim/init.lua"
+grep -q 'nvim-mini/mini.pick' "$DOTFILES_DIR/nvim/.config/nvim/init.lua"
+grep -q 'mason-org/mason-lspconfig.nvim' "$DOTFILES_DIR/nvim/.config/nvim/init.lua"
+grep -q 'nvim-treesitter/nvim-treesitter' "$DOTFILES_DIR/nvim/.config/nvim/init.lua"
+grep -q 'saghen/blink.cmp' "$DOTFILES_DIR/nvim/.config/nvim/init.lua"
+grep -q '"vtsls"' "$DOTFILES_DIR/nvim/.config/nvim/init.lua"
+grep -q '"basedpyright"' "$DOTFILES_DIR/nvim/.config/nvim/init.lua"
+awk '/local treesitter_parsers = {/,/^  }$/ {
+  if ($0 == "    \"svelte\",") found = 1
+} END { exit !found }' "$DOTFILES_DIR/nvim/.config/nvim/init.lua"
+awk '/local language_servers = {/,/^  }$/ {
+  if ($0 == "    \"svelte\",") found = 1
+} END { exit !found }' "$DOTFILES_DIR/nvim/.config/nvim/init.lua"
+grep -q '^brew "ripgrep"$' "$DOTFILES_DIR/Brewfile"
+grep -q '^brew "fzf"$' "$DOTFILES_DIR/Brewfile"
+grep -q '^brew "tree-sitter-cli"$' "$DOTFILES_DIR/Brewfile"
+grep -q '^brew "jandedobbeleer/oh-my-posh/oh-my-posh"$' "$DOTFILES_DIR/Brewfile"
+grep -q '^brew "steipete/tap/codexbar"$' "$DOTFILES_DIR/Brewfile"
+if grep -q '^brew "powerlevel10k"$' "$DOTFILES_DIR/Brewfile"; then
+  printf 'error: Powerlevel10k is still declared in the Brewfile\n' >&2
+  exit 1
+fi
+grep -q '^name = "catppuccin"$' "$DOTFILES_DIR/herdr/.config/herdr/config.toml"
+grep -q '^sidebar_width = 32$' "$DOTFILES_DIR/herdr/.config/herdr/config.toml"
+grep -Fqx 'previous_workspace = "ctrl+alt+k"' "$DOTFILES_DIR/herdr/.config/herdr/config.toml"
+grep -Fqx 'next_workspace = "ctrl+alt+j"' "$DOTFILES_DIR/herdr/.config/herdr/config.toml"
+grep -Fqx 'new_tab = "prefix+c"' "$DOTFILES_DIR/herdr/.config/herdr/config.toml"
+grep -Fqx 'close_workspace = "prefix+d"' "$DOTFILES_DIR/herdr/.config/herdr/config.toml"
+grep -Fqx 'remove_worktree = "prefix+shift+d"' "$DOTFILES_DIR/herdr/.config/herdr/config.toml"
+grep -Fqx 'new_cwd = "follow"' "$DOTFILES_DIR/herdr/.config/herdr/config.toml"
+for package in herdr herdr-linux; do
+  grep -Fqx 'workspace_picker = ""' "$DOTFILES_DIR/$package/.config/herdr/config.toml"
+  grep -Fqx 'goto = "prefix+w"' "$DOTFILES_DIR/$package/.config/herdr/config.toml"
+  grep -Fqx 'new_worktree = "prefix+t"' "$DOTFILES_DIR/$package/.config/herdr/config.toml"
+done
+grep -Fqx 'directory = "~/dev/worktrees"' "$DOTFILES_DIR/herdr/.config/herdr/config.toml"
+grep -Fqx 'key = "prefix+u"' "$DOTFILES_DIR/herdr/.config/herdr/config.toml"
+grep -Fqx 'command = "ai-usage show"' "$DOTFILES_DIR/herdr/.config/herdr/config.toml"
+grep -Fqx 'width = "90%"' "$DOTFILES_DIR/herdr/.config/herdr/config.toml"
+grep -Fqx 'height = "85%"' "$DOTFILES_DIR/herdr/.config/herdr/config.toml"
+grep -Fqx 'key = "prefix+f"' "$DOTFILES_DIR/herdr/.config/herdr/config.toml"
+grep -Fqx 'command = "herdr-fuzzy-open"' "$DOTFILES_DIR/herdr/.config/herdr/config.toml"
+grep -Fqx 'description = "find and open files"' "$DOTFILES_DIR/herdr/.config/herdr/config.toml"
+grep -Fqx 'width = "85%"' "$DOTFILES_DIR/herdr/.config/herdr/config.toml"
+grep -Fqx 'height = "75%"' "$DOTFILES_DIR/herdr/.config/herdr/config.toml"
+bash -n "$DOTFILES_DIR/herdr/.local/bin/herdr-fuzzy-open"
+DOTFILES_DIR="$DOTFILES_DIR" "$DOTFILES_DIR/tests/herdr-fuzzy-open.test.sh"
+grep -Fqx 'rows = [["state_icon", "workspace", "branch", "git_status"]]' \
+  "$DOTFILES_DIR/herdr/.config/herdr/config.toml"
+grep -q '^theme = "Catppuccin Mocha"$' \
+  "$DOTFILES_DIR/ghostty/Library/Application Support/com.mitchellh.ghostty/config"
+grep -q '^background-opacity = 1$' \
+  "$DOTFILES_DIR/ghostty/Library/Application Support/com.mitchellh.ghostty/config"
+grep -q '^macos-titlebar-style = native$' \
+  "$DOTFILES_DIR/ghostty/Library/Application Support/com.mitchellh.ghostty/config"
+
+if [[ "$(uname -s)" == Darwin ]]; then
+(
+  integration_home="$(mktemp -d "${TMPDIR:-/tmp}/dotfiles-integration.XXXXXX")"
+  trap 'rm -rf "$integration_home"' EXIT
+  with_integration_home() {
+    env -u CLAUDE_CONFIG_DIR -u CODEX_HOME -u CURSOR_CONFIG_DIR \
+      HOME="$integration_home" "$@"
+  }
+  mkdir -p \
+    "$integration_home/.claude" \
+    "$integration_home/.codex" \
+    "$integration_home/.cursor" \
+    "$integration_home/.hermes"
+  printf '%s\n' '{"preserved":true,"statusLine":{"type":"old"}}' \
+    >"$integration_home/.claude/settings.json"
+
+  with_integration_home "$DOTFILES_DIR/bootstrap" integrations >/dev/null
+  with_integration_home "$DOTFILES_DIR/scripts/install-herdr-skill" --check
+  jq -e '
+    .preserved == true and
+    .statusLine == {
+      type: "command",
+      command: "oh-my-posh claude --config ~/.config/oh-my-posh/claude.omp.json",
+      padding: 0
+    }
+  ' "$integration_home/.claude/settings.json" >/dev/null
+
+  integration_status="$(with_integration_home herdr integration status)"
+  for integration in claude codex cursor hermes; do
+    grep -Eq "^${integration}: current \\(v[0-9]+\\)" <<<"$integration_status"
+  done
+
+  before="$(cksum "$integration_home/.claude/settings.json")"
+  with_integration_home "$DOTFILES_DIR/bootstrap" integrations >/dev/null
+  after="$(cksum "$integration_home/.claude/settings.json")"
+  [[ "$before" == "$after" ]]
+
+  printf '%s\n' '[' >"$integration_home/.claude/settings.json"
+  if with_integration_home \
+    "$DOTFILES_DIR/bootstrap" integrations >/dev/null 2>&1; then
+    printf 'error: invalid Claude settings were unexpectedly overwritten\n' >&2
+    exit 1
+  fi
+
+  rm "$integration_home/.claude/settings.json"
+  with_integration_home "$DOTFILES_DIR/bootstrap" integrations >/dev/null
+  jq -e '.statusLine.type == "command"' \
+    "$integration_home/.claude/settings.json" >/dev/null
+  [[ "$(stat -f '%Lp' "$integration_home/.claude/settings.json")" == 600 ]]
+  if find "$integration_home/.claude" -maxdepth 1 -name '.settings.json.*' | grep -q .; then
+    printf 'error: temporary Claude settings file was not cleaned up\n' >&2
+    exit 1
+  fi
+)
+
+fi
+
+if command -v stow >/dev/null 2>&1; then
+  temporary_home="$(mktemp -d "${TMPDIR:-/tmp}/dotfiles-home.XXXXXX")"
+  trap 'rm -rf "$temporary_home"' EXIT
+  cache_root="$temporary_home/.cache"
+  cache_user="$(id -un)"
+  mkdir -p "$cache_root/p10k-$cache_user"
+  : >"$cache_root/p10k-dump-$cache_user.zsh"
+  : >"$cache_root/p10k-dump-$cache_user.zsh.zwc"
+  : >"$cache_root/p10k-instant-prompt-$cache_user.zsh"
+  : >"$cache_root/p10k-instant-prompt-$cache_user.zsh.zwc"
+  : >"$cache_root/p10k-$cache_user/prompt-51"
+  ln -s "$DOTFILES_DIR/zsh/.p10k.zsh" "$temporary_home/.p10k.zsh"
+  HOME="$temporary_home" XDG_CACHE_HOME="$cache_root" DOTFILES_BACKUP_TIMESTAMP=check \
+    "$DOTFILES_DIR/bootstrap" link >/dev/null
+  [[ ! -e "$temporary_home/.p10k.zsh" && ! -L "$temporary_home/.p10k.zsh" ]]
+  [[ ! -e "$cache_root/p10k-dump-$cache_user.zsh" ]]
+  [[ ! -e "$cache_root/p10k-dump-$cache_user.zsh.zwc" ]]
+  [[ ! -e "$cache_root/p10k-instant-prompt-$cache_user.zsh" ]]
+  [[ ! -e "$cache_root/p10k-instant-prompt-$cache_user.zsh.zwc" ]]
+  [[ ! -e "$cache_root/p10k-$cache_user" ]]
+
+  ln -s /tmp/unexpected-p10k-target "$temporary_home/.p10k.zsh"
+  if HOME="$temporary_home" XDG_CACHE_HOME="$cache_root" DOTFILES_BACKUP_TIMESTAMP=check \
+    "$DOTFILES_DIR/bootstrap" link >/dev/null 2>&1; then
+    printf 'error: an unexpected Powerlevel10k symlink was removed\n' >&2
+    exit 1
+  fi
+  [[ -L "$temporary_home/.p10k.zsh" ]]
+  unlink "$temporary_home/.p10k.zsh"
+
+  mkdir -p "$cache_root/p10k-$cache_user"
+  : >"$cache_root/p10k-$cache_user/keep-me"
+  if HOME="$temporary_home" XDG_CACHE_HOME="$cache_root" DOTFILES_BACKUP_TIMESTAMP=check \
+    "$DOTFILES_DIR/bootstrap" link >/dev/null 2>&1; then
+    printf 'error: an unexpected Powerlevel10k cache file was removed\n' >&2
+    exit 1
+  fi
+  [[ -f "$cache_root/p10k-$cache_user/keep-me" ]]
+fi
+
+printf 'Static checks passed.\n'

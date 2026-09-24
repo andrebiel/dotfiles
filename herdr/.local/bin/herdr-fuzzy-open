@@ -1,0 +1,101 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+fail() {
+  printf 'error: %s\n' "$*" >&2
+  exit 1
+}
+
+rg_bin="${HERDR_RG_BIN:-rg}"
+fzf_bin="${HERDR_FZF_BIN:-fzf}"
+editor_bin="${HERDR_EDITOR_BIN:-nvim}"
+herdr_bin="${HERDR_BIN_PATH:-herdr}"
+# Custom-command popups receive ACTIVE_* context; normal panes receive the
+# unprefixed IDs. Prefer the popup's caller over any stale server inheritance.
+workspace_id="${HERDR_ACTIVE_WORKSPACE_ID:-${HERDR_WORKSPACE_ID:-}}"
+if [[ "$(uname -s)" == Darwin ]]; then
+  open_bin="${HERDR_OPEN_BIN:-open}"
+else
+  open_bin="${HERDR_OPEN_BIN:-xdg-open}"
+fi
+search_root="${HERDR_ACTIVE_PANE_CWD:-$PWD}"
+
+command -v "$rg_bin" >/dev/null 2>&1 || fail "ripgrep is required"
+command -v "$fzf_bin" >/dev/null 2>&1 || fail "fzf is required"
+[[ -d "$search_root" ]] || fail "directory does not exist: $search_root"
+search_root="$(cd "$search_root" && pwd -P)"
+
+umask 077
+selection_file="$(mktemp "${TMPDIR:-/tmp}/herdr-fuzzy-open.XXXXXX")"
+cleanup() {
+  rm -f -- "$selection_file"
+}
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
+set +e
+(
+  cd "$search_root"
+  "$rg_bin" --files --hidden --null |
+    "$fzf_bin" \
+      --read0 \
+      --print0 \
+      --multi \
+      --expect=ctrl-o \
+      --disabled \
+      --layout=reverse \
+      --border=rounded \
+      --info=inline \
+      --prompt='Normal> ' \
+      --header='j/k navigate · / search · Ctrl-G normal · Tab select · Enter open · Ctrl-O editor tab · Esc close' \
+      --bind=j:down,k:up \
+      --bind='/:enable-search+unbind(j,k,/)+change-prompt(Search> )' \
+      --bind='ctrl-g:disable-search+rebind(j,k,/)+change-prompt(Normal> )' >"$selection_file"
+)
+picker_status=$?
+set -e
+
+case "$picker_status" in
+  0) ;;
+  1|130) exit 0 ;;
+  *) fail "file picker failed with status $picker_status" ;;
+esac
+
+selected_files=()
+{
+  # With --expect and --print0, fzf prefixes selections with a NUL-delimited
+  # key name (empty for Enter). Keep filenames NUL-delimited as well.
+  IFS= read -r -d '' action || fail 'file picker did not return an action'
+  while IFS= read -r -d '' relative_path; do
+    selected_path="$search_root/$relative_path"
+    [[ -f "$selected_path" ]] || fail "file no longer exists: $selected_path"
+    selected_files+=("$selected_path")
+  done
+} <"$selection_file"
+((${#selected_files[@]} > 0)) || exit 0
+
+case "$action" in
+  '')
+    command -v "$open_bin" >/dev/null 2>&1 || fail "$open_bin is required"
+    for selected_path in "${selected_files[@]}"; do
+      # Absolute paths are safe; xdg-open does not accept an option terminator.
+      "$open_bin" "$selected_path"
+    done
+    ;;
+  ctrl-o)
+    command -v "$editor_bin" >/dev/null 2>&1 || fail "$editor_bin is required"
+    command -v "$herdr_bin" >/dev/null 2>&1 || fail 'Herdr is required for an editor tab'
+    command -v jq >/dev/null 2>&1 || fail 'jq is required for an editor tab'
+    [[ "${HERDR_ENV:-}" == 1 && -n "$workspace_id" ]] ||
+      fail 'Open the editor tab from a Herdr workspace'
+    # Quote each argument for the configured Zsh shell; paths are never code.
+    printf -v editor_command '%q ' "$(command -v "$editor_bin")" -- "${selected_files[@]}"
+    created="$("$herdr_bin" tab create --workspace "$workspace_id" --cwd "$search_root" --label Neovim --no-focus)"
+    pane_id="$(jq -er '.result.root_pane.pane_id' <<<"$created")"
+    tab_id="$(jq -er '.result.tab.tab_id' <<<"$created")"
+    "$herdr_bin" pane run "$pane_id" "$editor_command"
+    "$herdr_bin" tab focus "$tab_id" >/dev/null
+    ;;
+  *) fail "unexpected picker action: $action" ;;
+esac

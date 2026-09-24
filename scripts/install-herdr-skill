@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Use Herdr's release-matched instructions for both agent CLIs.
+skill_dir="$HOME/.agents/skills/herdr"
+skill_file="$skill_dir/SKILL.md"
+claude_skills="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills"
+claude_link="$claude_skills/herdr"
+mode="${1:-install}"
+fail() { printf 'error: %s\n' "$*" >&2; exit 1; }
+[[ $# -le 1 && ( "$mode" == install || "$mode" == --check ) ]] ||
+  fail 'usage: install-herdr-skill [--check]'
+command -v herdr >/dev/null || fail 'Herdr is required; run ./bootstrap install first'
+
+temporary="$(mktemp "${TMPDIR:-/tmp}/herdr-skill.XXXXXX")"
+trap 'rm -f "$temporary"' EXIT
+herdr --skill >"$temporary"
+[[ "$(head -n 1 "$temporary")" == --- ]] &&
+  grep -Fqx 'name: herdr' "$temporary" &&
+  grep -q '^description: .' "$temporary" &&
+  grep -q 'HERDR_ENV' "$temporary" || fail 'Herdr did not return a valid bundled skill'
+
+if [[ "$mode" == --check ]]; then
+  cmp -s "$temporary" "$skill_file" || fail 'Herdr skill is missing or outdated; run ./bootstrap integrations'
+  [[ -L "$claude_link" && "$(readlink "$claude_link")" == "$skill_dir" ]] ||
+    fail 'Claude Herdr skill link is missing or incorrect; run ./bootstrap integrations'
+  printf 'Herdr skill is current for Codex and Claude Code.\n'
+  exit 0
+fi
+
+# Refuse unrelated links/directories instead of replacing another installation.
+[[ ! -L "$skill_dir" && ( ! -e "$skill_dir" || -d "$skill_dir" ) ]] ||
+  fail "conflicting skill directory: $skill_dir"
+[[ ! -L "$skill_file" && ( ! -e "$skill_file" || -f "$skill_file" ) ]] ||
+  fail "conflicting skill file: $skill_file"
+if [[ -L "$claude_link" ]]; then
+  [[ "$(readlink "$claude_link")" == "$skill_dir" ]] || fail "conflicting Claude skill link: $claude_link"
+elif [[ -e "$claude_link" ]]; then
+  fail "Claude skill already exists separately: $claude_link"
+fi
+
+mkdir -p "$skill_dir" "$claude_skills"
+if ! cmp -s "$temporary" "$skill_file"; then
+  if [[ -f "$skill_file" ]]; then
+    backup="$(mktemp "$skill_dir/SKILL.md.backup.XXXXXX")"
+    cp -p "$skill_file" "$backup"
+    printf 'Previous Herdr skill saved to %s.\n' "$backup"
+  fi
+  staged="$(mktemp "$skill_dir/.SKILL.md.XXXXXX")"
+  trap 'rm -f "$temporary" "${staged:-}"' EXIT
+  cp "$temporary" "$staged"
+  chmod 644 "$staged"
+  mv "$staged" "$skill_file"
+fi
+if [[ ! -L "$claude_link" ]]; then ln -s "$skill_dir" "$claude_link"; fi
+printf 'Herdr skill installed for Codex and Claude Code from the local Herdr release.\n'

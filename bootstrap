@@ -1,0 +1,850 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}"
+CLAUDE_STATUSLINE_COMMAND='oh-my-posh claude --config ~/.config/oh-my-posh/claude.omp.json'
+HERDR_INTEGRATIONS=(claude codex cursor hermes)
+AI_USAGE_AGENT_LABEL='dev.andrebiel.ai-usage'
+PNPM_VERSION='12.4.1'
+PACKAGES=(zsh ghostty herdr nvim ssh ai-usage)
+MANAGED_PATHS=(
+  .zshenv
+  .zprofile
+  .zshrc
+  .config/zsh/homebrew.zsh
+  .config/zsh/environment.sh
+  .config/oh-my-posh/base.omp.json
+  .config/oh-my-posh/shell.omp.json
+  .config/oh-my-posh/claude.omp.json
+  .config/herdr/config.toml
+  .local/bin/herdr-fuzzy-open
+  .config/nvim/init.lua
+  .local/bin/ai-usage
+  .local/lib/ai-usage/dashboard.js
+  .local/lib/ai-usage/snapshot.js
+  "Library/Application Support/com.mitchellh.ghostty/config"
+  Library/LaunchAgents/dev.andrebiel.ai-usage.plist
+  .ssh/config
+)
+OBSOLETE_MANAGED_PATHS=(
+  .p10k.zsh
+  .config/nvim/colors/ghostty.vim
+  .local/bin/herdr-fresh-worktree
+)
+
+usage() {
+  cat <<'USAGE'
+Usage: ./bootstrap [all|migrate|install|auth|secrets|integrations|usage|link|doctor]
+                   [--platform macos|linux] [--without-secrets]
+
+Interactive setup asks MacBook or Linux; unattended runs detect the OS.
+Linux installation supports Ubuntu/Debian on x86_64 and arm64.
+--without-secrets installs/checks public configuration while sign-in is pending.
+
+  all       Install dependencies; render secrets; link files; configure integrations
+            and launchd; then run doctor. Only the managed-link step rolls back.
+  migrate   Install dependencies; write imported values to 1Password; render secrets;
+            migrate links; configure integrations and launchd; then run doctor.
+            Managed files roll back on failure; external changes do not.
+  install   Install platform dependencies and the latest Node LTS.
+  auth      Sign in to 1Password and render machine-local secrets.
+  secrets   Render ~/.config/zsh/secrets.zsh from 1Password.
+  integrations  Configure Claude Code, Herdr integrations, and the Herdr skill.
+  usage [--reload]  Ensure the AI usage job is loaded; --reload forces replacement.
+  link      Back up non-secret conflicts and create Stow symlinks.
+  doctor    Check links, syntax, secret safety, and effective configurations.
+USAGE
+}
+
+fail() {
+  printf 'error: %s\n' "$*" >&2
+  exit 1
+}
+
+need() {
+  command -v "$1" >/dev/null 2>&1 || fail "$1 is required"
+}
+
+install_dependencies() {
+  if [[ "$PLATFORM" == linux ]]; then
+    PNPM_VERSION="$PNPM_VERSION" "$DOTFILES_DIR/scripts/install-linux"
+    export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+    set +u
+    source "$NVM_DIR/nvm.sh"
+    set -u
+    export PATH="$HOME/.bun/bin:$PATH"
+    return
+  fi
+  if ! command -v brew >/dev/null; then
+    local brew_installer
+    brew_installer="$(mktemp)"
+    if ! curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh -o "$brew_installer"; then
+      rm -f "$brew_installer"
+      fail 'could not download Homebrew installer'
+    fi
+    /bin/bash "$brew_installer" || { rm -f "$brew_installer"; fail 'Homebrew installation failed'; }
+    rm -f "$brew_installer"
+    if [[ -x /opt/homebrew/bin/brew ]]; then
+      eval "$(/opt/homebrew/bin/brew shellenv)"
+    elif [[ -x /usr/local/bin/brew ]]; then
+      eval "$(/usr/local/bin/brew shellenv)"
+    fi
+  fi
+  need brew
+  brew bundle --file "$DOTFILES_DIR/Brewfile"
+
+  export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+  mkdir -p "$NVM_DIR"
+  # shellcheck disable=SC1090
+  set +u
+  source "$(brew --prefix nvm)/nvm.sh"
+  nvm install --lts
+  nvm alias default 'lts/*'
+  set -u
+  if command -v corepack >/dev/null; then
+    corepack enable
+    corepack prepare "pnpm@$PNPM_VERSION" --activate
+  else
+    npm install --global "pnpm@$PNPM_VERSION"
+  fi
+}
+
+render_secrets() (
+  need op
+  need zsh
+
+  local template="$DOTFILES_DIR/secrets/secrets.zsh.tpl"
+  local target_dir="$HOME/.config/zsh"
+  local target="$target_dir/secrets.zsh"
+  local temporary="" value_temporary="" secret_name secret_reference
+
+  cleanup_rendered_secrets() {
+    [[ -z "$temporary" ]] || rm -f -- "$temporary"
+    [[ -z "$value_temporary" ]] || rm -f -- "$value_temporary"
+  }
+  trap cleanup_rendered_secrets EXIT
+  trap 'exit 130' INT
+  trap 'exit 143' TERM
+
+  op item get Dotfiles --vault Private >/dev/null
+  mkdir -p "$target_dir"
+  if [[ -L "$target" || ( -e "$target" && ! -f "$target" ) ]]; then
+    fail "secret target is not a regular file: $target"
+  fi
+  umask 077
+  # Keep the replacement on the target filesystem so the final rename is atomic.
+  temporary="$(mktemp "$target_dir/.secrets.zsh.XXXXXX")"
+  value_temporary="$(mktemp "$target_dir/.secret-value.XXXXXX")"
+
+  while IFS='|' read -r secret_name secret_reference; do
+    [[ -n "$secret_name" && -n "$secret_reference" ]] || continue
+    # --out-file keeps the value as file data rather than terminal-formatted
+    # output (including any presentation newline from stdout).
+    if ! op read "$secret_reference" --out-file "$value_temporary" --force >/dev/null; then
+      fail "1Password could not read $secret_name"
+    fi
+    # Read through a NUL delimiter (which shell variables cannot contain) so
+    # trailing newlines are retained, then let Zsh produce its own inert literal.
+    if ! zsh -f -c '
+      local value
+      IFS= read -r -d $'\''\0'\'' value < "$1" || true
+      print -r -- "export $2=${(qqqq)value}"
+    ' dotfiles-secret-quote "$value_temporary" "$secret_name" >>"$temporary"; then
+      fail "could not encode $secret_name as a Zsh literal"
+    fi
+    : >"$value_temporary"
+  done < <(sed -n 's#^\([A-Z][A-Z0-9_]*\)=\(op://[^[:space:]]*\)$#\1|\2#p' "$template")
+
+  [[ -s "$temporary" ]] || fail "no secret references found in $template"
+  if ! zsh -n "$temporary"; then
+    fail "rendered secrets failed Zsh syntax validation"
+  fi
+  if ! bash -n "$temporary" 2>/dev/null; then
+    fail "rendered secrets failed Bash syntax validation"
+  fi
+  chmod 600 "$temporary"
+  mv "$temporary" "$target"
+  temporary=""
+  rm -f -- "$value_temporary"
+  value_temporary=""
+  trap - EXIT INT TERM
+  printf 'Rendered %s with mode 600.\n' "$target"
+)
+
+configure_integrations() (
+  need jq
+  if [[ "$PLATFORM" == macos ]]; then need herdr; fi
+
+  local integration settings_dir settings_file settings_mode temporary
+  temporary=""
+  trap '[[ -z "$temporary" ]] || rm -f "$temporary"' EXIT
+  settings_dir="$HOME/.claude"
+  settings_file="$settings_dir/settings.json"
+
+  if [[ -L "$settings_file" || ( -e "$settings_file" && ! -f "$settings_file" ) ]]; then
+    fail "$settings_file exists but is not a regular file"
+  fi
+  if [[ -f "$settings_file" ]] && ! jq -e 'type == "object"' "$settings_file" >/dev/null; then
+    fail "$settings_file is not a valid JSON object"
+  fi
+
+  for integration in "${HERDR_INTEGRATIONS[@]}"; do
+    mkdir -p "$HOME/.$integration"
+  done
+  temporary="$(mktemp "$settings_dir/.settings.json.XXXXXX")"
+  if [[ -f "$settings_file" ]]; then
+    settings_mode="$(file_mode "$settings_file")"
+    if ! jq --arg command "$CLAUDE_STATUSLINE_COMMAND" \
+      '.statusLine = {type: "command", command: $command, padding: 0}' \
+      "$settings_file" >"$temporary"; then
+      rm "$temporary"
+      fail "could not update $settings_file"
+    fi
+  else
+    settings_mode=600
+    if ! jq -n --arg command "$CLAUDE_STATUSLINE_COMMAND" \
+      '{statusLine: {type: "command", command: $command, padding: 0}}' >"$temporary"; then
+      rm "$temporary"
+      fail "could not create $settings_file"
+    fi
+  fi
+  chmod "$settings_mode" "$temporary"
+
+  # Herdr may insert compact JSON. Preserve equivalent settings byte-for-byte
+  # instead of reformatting its hooks on the next bootstrap run.
+  if [[ -f "$settings_file" ]] &&
+    jq -e --slurpfile updated "$temporary" '. == $updated[0]' "$settings_file" >/dev/null; then
+    rm "$temporary"
+    temporary=""
+  else
+    mv "$temporary" "$settings_file"
+    temporary=""
+    printf 'Configured Claude Code status line in %s.\n' "$settings_file"
+  fi
+
+  if [[ "$PLATFORM" == macos ]] || command -v herdr >/dev/null; then
+    for integration in "${HERDR_INTEGRATIONS[@]}"; do
+      herdr integration install "$integration"
+    done
+    "$DOTFILES_DIR/scripts/install-herdr-skill"
+  else
+    printf 'Claude status line configured; Herdr integrations skipped (Herdr is not installed).\n'
+  fi
+)
+
+configure_ai_usage() (
+  if [[ "$PLATFORM" == linux ]]; then
+    printf 'AI usage LaunchAgent skipped: this job requires macOS and CodexBar.\n'
+    return
+  fi
+  need bun
+  need codexbar
+  need launchctl
+
+  local force_reload="${1:-false}"
+  local domain agent_file service loaded_details loaded_path agent_signature
+  local state_dir state_file state_snapshot state_temporary snapshot_temporary
+  local previous_dir previous_snapshot bootstrap_status restoration_needed replacement_loaded
+  [[ "$force_reload" == false || "$force_reload" == true ]] ||
+    fail "invalid AI usage reload mode"
+  domain="gui/$(id -u)"
+  agent_file="$HOME/Library/LaunchAgents/$AI_USAGE_AGENT_LABEL.plist"
+  service="$domain/$AI_USAGE_AGENT_LABEL"
+  state_dir="$HOME/Library/Caches/ai-usage"
+  state_file="$state_dir/launchagent.cksum"
+  state_snapshot="$state_dir/launchagent.plist"
+  previous_dir=""
+  previous_snapshot=""
+  state_temporary=""
+  snapshot_temporary=""
+  restoration_needed=false
+  replacement_loaded=false
+  [[ -L "$agent_file" || -f "$agent_file" ]] || fail "$agent_file is not linked"
+  agent_signature="$(cksum <"$agent_file")"
+
+  finish_ai_usage_configuration() {
+    local status=$?
+    trap - EXIT INT TERM
+    if [[ "$restoration_needed" == true ]]; then
+      if [[ "$replacement_loaded" == true ]] && ! launchctl bootout "$service"; then
+        printf 'warning: replacement failed and could not be booted out before restoring the prior AI usage agent\n' >&2
+      fi
+      if launchctl bootstrap "$domain" "$previous_snapshot"; then
+        if ! launchctl kickstart -k "$service"; then
+          printf 'warning: prior AI usage agent was restored but could not be kickstarted\n' >&2
+        fi
+      else
+        printf 'warning: replacement failed and the prior AI usage agent could not be restored\n' >&2
+      fi
+    fi
+    [[ -z "$state_temporary" ]] || rm -f "$state_temporary"
+    [[ -z "$snapshot_temporary" ]] || rm -f "$snapshot_temporary"
+    [[ -z "$previous_dir" ]] || rm -rf "$previous_dir"
+    exit "$status"
+  }
+  trap finish_ai_usage_configuration EXIT
+  trap 'exit 130' INT
+  trap 'exit 143' TERM
+
+  loaded_details=""
+  if loaded_details="$(launchctl print "$service" 2>/dev/null)"; then
+    loaded_path="$(sed -n 's/^[[:space:]]*path = //p' <<<"$loaded_details" | head -n 1)"
+
+    # launchctl's source path alone does not prove that launchd parsed the
+    # current file. A matching snapshot/signature is recorded only after a
+    # successful bootstrap, so this is a conservative no-reload check.
+    if [[ "$force_reload" == false && "$loaded_path" == "$agent_file" &&
+          -f "$state_file" && -f "$state_snapshot" &&
+          "$(<"$state_file")" == "$agent_signature" &&
+          "$(cksum <"$state_snapshot")" == "$agent_signature" ]]; then
+      printf 'AI usage refresh job %s is already loaded with the current configuration.\n' \
+        "$AI_USAGE_AGENT_LABEL"
+      return 0
+    fi
+
+    # Keep a private, short-lived copy of the best available prior plist. For
+    # agents loaded from the managed path, only the recorded snapshot proves
+    # what launchd previously parsed: that path's current contents may already
+    # have changed. A distinct source path can be preserved directly.
+    if [[ "$loaded_path" == "$agent_file" ]]; then
+      if [[ ! -f "$state_file" || ! -f "$state_snapshot" ]] ||
+         [[ "$(cksum <"$state_snapshot")" != "$(<"$state_file")" ]]; then
+        fail "cannot safely reload $AI_USAGE_AGENT_LABEL: no trusted prior configuration snapshot; leave it loaded, or manually boot it out and rerun bootstrap usage to establish trusted state"
+      fi
+    fi
+    previous_dir="$(mktemp -d "${TMPDIR:-/tmp}/dotfiles-launchagent.XXXXXX")"
+    chmod 700 "$previous_dir"
+    previous_snapshot="$previous_dir/$AI_USAGE_AGENT_LABEL.plist"
+    if [[ "$loaded_path" == "$agent_file" && -f "$state_file" &&
+          -f "$state_snapshot" &&
+          "$(cksum <"$state_snapshot")" == "$(<"$state_file")" ]]; then
+      cp "$state_snapshot" "$previous_snapshot"
+    elif [[ "$loaded_path" != "$agent_file" && -n "$loaded_path" &&
+            ( -L "$loaded_path" || -f "$loaded_path" ) ]]; then
+      cp "$loaded_path" "$previous_snapshot"
+    else
+      fail "cannot safely reload $AI_USAGE_AGENT_LABEL: prior plist is unavailable"
+    fi
+
+    restoration_needed=true
+    if launchctl bootout "$service"; then
+      :
+    else
+      bootstrap_status=$?
+      restoration_needed=false
+      return "$bootstrap_status"
+    fi
+  fi
+
+  if launchctl bootstrap "$domain" "$agent_file"; then
+    replacement_loaded=true
+  else
+    bootstrap_status=$?
+    return "$bootstrap_status"
+  fi
+  launchctl kickstart -k "$service"
+  restoration_needed=false
+  replacement_loaded=false
+
+  # Atomically replace each state file. Readers require the snapshot checksum
+  # and recorded signature to agree, so an interrupted two-file update is
+  # treated as unknown state and never as proof that a reload is unnecessary.
+  mkdir -p "$state_dir"
+  state_temporary="$(mktemp "$state_dir/.launchagent.cksum.XXXXXX")"
+  snapshot_temporary="$(mktemp "$state_dir/.launchagent.plist.XXXXXX")"
+  cp "$agent_file" "$snapshot_temporary"
+  printf '%s\n' "$agent_signature" >"$state_temporary"
+  mv "$snapshot_temporary" "$state_snapshot"
+  snapshot_temporary=""
+  mv "$state_temporary" "$state_file"
+  state_temporary=""
+  printf 'Loaded AI usage refresh job %s.\n' "$AI_USAGE_AGENT_LABEL"
+)
+
+contains_managed_secrets() {
+  local secret_name
+  while IFS= read -r secret_name; do
+    grep -Eq "^export[[:space:]]+${secret_name}=" "$1" && return 0
+  done < <(sed -n 's#.*op://Private/Dotfiles/\([A-Z0-9_]*\).*#\1#p' "$DOTFILES_DIR/secrets/secrets.zsh.tpl")
+  return 1
+}
+
+managed_source() {
+  case "$1" in
+    .zshenv|.zprofile|.zshrc|.p10k.zsh|.config/zsh/homebrew.zsh|.config/zsh/environment.sh|.config/oh-my-posh/*.omp.json)
+      printf '%s/zsh/%s\n' "$DOTFILES_DIR" "$1"
+      ;;
+    .config/herdr/config.toml)
+      if [[ "$PLATFORM" == linux ]]; then
+        printf '%s/herdr-linux/%s\n' "$DOTFILES_DIR" "$1"
+      else
+        printf '%s/herdr/%s\n' "$DOTFILES_DIR" "$1"
+      fi
+      ;;
+    .local/bin/herdr-fuzzy-open)
+      printf '%s/herdr/%s\n' "$DOTFILES_DIR" "$1"
+      ;;
+    .local/bin/herdr-fresh-worktree)
+      if [[ "$PLATFORM" == linux ]]; then
+        printf '%s/herdr-linux/%s\n' "$DOTFILES_DIR" "$1"
+      else
+        printf '%s/herdr/%s\n' "$DOTFILES_DIR" "$1"
+      fi
+      ;;
+    .config/nvim/init.lua|.config/nvim/colors/ghostty.vim)
+      printf '%s/nvim/%s\n' "$DOTFILES_DIR" "$1"
+      ;;
+    .local/bin/ai-usage|.local/lib/ai-usage/*.js|Library/LaunchAgents/dev.andrebiel.ai-usage.plist)
+      printf '%s/ai-usage/%s\n' "$DOTFILES_DIR" "$1"
+      ;;
+    .ssh/config) printf '%s/ssh/%s\n' "$DOTFILES_DIR" "$1" ;;
+    "Library/Application Support/com.mitchellh.ghostty/config")
+      printf '%s/ghostty/%s\n' "$DOTFILES_DIR" "$1"
+      ;;
+    *) fail "unknown managed path: $1" ;;
+  esac
+}
+
+resolved_path() {
+  realpath "$1" 2>/dev/null || return 1
+}
+
+resolved_link_target() {
+  local link_path="$1" link_target unresolved suffix component
+  link_target="$(readlink "$link_path")" || return 1
+
+  if [[ "$link_target" == /* ]]; then
+    unresolved="$link_target"
+  else
+    unresolved="$(dirname "$link_path")/$link_target"
+  fi
+
+  suffix=""
+  while [[ ! -e "$unresolved" && ! -L "$unresolved" ]]; do
+    component="$(basename "$unresolved")"
+    suffix="/$component$suffix"
+    unresolved="$(dirname "$unresolved")"
+  done
+
+  printf '%s%s\n' "$(realpath "$unresolved")" "$suffix"
+}
+
+remove_obsolete_prompt_cache() {
+  local validate_only="${1:-false}"
+  local cache_root user target entry entry_name prompt_dir
+  local -a cache_files=() prompt_files=()
+  cache_root="${XDG_CACHE_HOME:-$HOME/.cache}"
+  [[ "$cache_root" == /* && "$cache_root" != / ]] ||
+    fail "refusing unsafe cache root: $cache_root"
+  user="$(id -un)"
+
+  for target in \
+    "$cache_root/p10k-dump-$user.zsh" \
+    "$cache_root/p10k-dump-$user.zsh.zwc" \
+    "$cache_root/p10k-instant-prompt-$user.zsh" \
+    "$cache_root/p10k-instant-prompt-$user.zsh.zwc"; do
+    [[ -e "$target" || -L "$target" ]] || continue
+    [[ -f "$target" || -L "$target" ]] ||
+      fail "$target is not an expected Powerlevel10k cache file"
+    cache_files+=("$target")
+  done
+
+  target="$cache_root/p10k-$user"
+  prompt_dir=false
+  if [[ -e "$target" || -L "$target" ]]; then
+    [[ -d "$target" && ! -L "$target" ]] ||
+      fail "$target is not an expected Powerlevel10k cache directory"
+    prompt_dir=true
+    while IFS= read -r -d '' entry; do
+      entry_name="$(basename "$entry")"
+      [[ -f "$entry" && "$entry_name" =~ ^prompt-[0-9]+$ ]] ||
+        fail "$entry is not an expected Powerlevel10k prompt cache file"
+      prompt_files+=("$entry")
+    done < <(find "$target" -mindepth 1 -maxdepth 1 -print0)
+  fi
+
+  [[ "$validate_only" == false ]] || return 0
+  (( ${#cache_files[@]} == 0 )) || rm -f -- "${cache_files[@]}"
+  (( ${#prompt_files[@]} == 0 )) || rm -f -- "${prompt_files[@]}"
+  [[ "$prompt_dir" == false ]] || rmdir "$target"
+}
+
+link_dotfiles() (
+  need stow
+
+  local timestamp backup_parent backup_root target relative expected actual rollback backup_needed
+  local transaction_status rollback_status
+  local -a missing_paths=(__none__)
+  timestamp="${DOTFILES_BACKUP_TIMESTAMP:-$(date +%Y%m%d-%H%M%S)-$$-${RANDOM}}"
+  [[ "$timestamp" =~ ^[A-Za-z0-9][A-Za-z0-9_-]*$ ]] ||
+    fail "invalid backup ID: $timestamp"
+  backup_parent="$HOME/.dotfiles-backup"
+  [[ ! -L "$backup_parent" && ( ! -e "$backup_parent" || -d "$backup_parent" ) ]] ||
+    fail "backup parent is not a directory: $backup_parent"
+  backup_root="$backup_parent/$timestamp"
+  [[ ! -e "$backup_root" && ! -L "$backup_root" ]] ||
+    fail "backup root already exists: $backup_root"
+  backup_needed=false
+
+  # Validate every source and existing symlink before moving any real file.
+  for relative in "${MANAGED_PATHS[@]}"; do
+    target="$HOME/$relative"
+    expected="$(managed_source "$relative")"
+    [[ -f "$expected" ]] || fail "managed source is missing: $expected"
+
+    if [[ -L "$target" ]]; then
+      actual="$(resolved_path "$target" || true)"
+      [[ "$actual" == "$expected" ]] ||
+        fail "$target is an unexpected symlink to ${actual:-a missing target}"
+      continue
+    fi
+
+    if [[ ! -e "$target" ]]; then
+      missing_paths+=("$relative")
+      continue
+    fi
+
+    if [[ "$relative" == ".zshrc" ]] && contains_managed_secrets "$target"; then
+      fail "$target still contains managed secrets; import and render them before replacing it"
+    fi
+    backup_needed=true
+  done
+
+  # Remove retired links only when they still target the expected repository path.
+  for relative in "${OBSOLETE_MANAGED_PATHS[@]}"; do
+    target="$HOME/$relative"
+    [[ -L "$target" ]] || continue
+    expected="$(managed_source "$relative")"
+    actual="$(resolved_link_target "$target" || true)"
+    [[ "$actual" == "$expected" ]] ||
+      fail "$target is an unexpected symlink to ${actual:-an unreadable target}"
+  done
+  # Validate retired cache contents before changing managed paths. Deletion is
+  # deliberately deferred until after the link transaction commits.
+  remove_obsolete_prompt_cache true
+
+  if [[ "$backup_needed" == true ]]; then
+    # Revalidate immediately before creating the transaction directory. A
+    # symlink here could redirect every subsequent backup move outside HOME.
+    [[ ! -L "$backup_parent" && ( ! -e "$backup_parent" || -d "$backup_parent" ) ]] ||
+      fail "backup parent is not a directory: $backup_parent"
+    if [[ ! -e "$backup_parent" ]]; then
+      mkdir "$backup_parent"
+    fi
+    # Do not use mkdir -p here: this must fail atomically if another process
+    # claims the backup ID after the earlier collision check.
+    mkdir "$backup_root"
+  fi
+
+  rollback=true
+  was_missing_path() {
+    local candidate
+    for candidate in "${missing_paths[@]}"; do
+      [[ "$candidate" == "$1" ]] && return 0
+    done
+    return 1
+  }
+  restore_backups() {
+    local rollback_relative rollback_target rollback_source rollback_backup
+    local restore_status=0
+    for rollback_relative in "${MANAGED_PATHS[@]}"; do
+      rollback_target="$HOME/$rollback_relative"
+      rollback_source="$(managed_source "$rollback_relative")"
+      rollback_backup="$backup_root/$rollback_relative"
+
+      if [[ -e "$rollback_backup" || -L "$rollback_backup" ]]; then
+        if [[ -L "$rollback_target" ]] &&
+          [[ "$(resolved_path "$rollback_target" || true)" == "$rollback_source" ]]; then
+          unlink "$rollback_target" || restore_status=1
+        elif [[ -e "$rollback_target" || -L "$rollback_target" ]]; then
+          printf 'error: cannot restore %s over an unexpected target\n' "$rollback_target" >&2
+          restore_status=1
+          continue
+        fi
+        mkdir -p "$(dirname "$rollback_target")" || restore_status=1
+        mv "$rollback_backup" "$rollback_target" || restore_status=1
+      elif was_missing_path "$rollback_relative" &&
+        [[ -L "$rollback_target" ]] &&
+        [[ "$(resolved_path "$rollback_target" || true)" == "$rollback_source" ]]; then
+        unlink "$rollback_target" || restore_status=1
+      fi
+    done
+    return "$restore_status"
+  }
+  finish_link_transaction() {
+    transaction_status=$?
+    trap - EXIT INT TERM
+    if [[ "$rollback" == true ]]; then
+      set +e
+      restore_backups
+      rollback_status=$?
+      if (( rollback_status != 0 )); then
+        printf 'error: dotfiles rollback was incomplete; backups remain in %s\n' "$backup_root" >&2
+        (( transaction_status != 0 )) || transaction_status=$rollback_status
+      fi
+    fi
+    exit "$transaction_status"
+  }
+  trap finish_link_transaction EXIT
+  trap 'exit 130' INT
+  trap 'exit 143' TERM
+
+  for relative in "${MANAGED_PATHS[@]}"; do
+    target="$HOME/$relative"
+    [[ -L "$target" || ! -e "$target" ]] && continue
+    mkdir -p "$backup_root/$(dirname "$relative")"
+    mv "$target" "$backup_root/$relative"
+    printf 'Backed up %s to %s.\n' "$target" "$backup_root/$relative"
+  done
+
+  stow --dir "$DOTFILES_DIR" --target "$HOME" --simulate --restow --no-folding "${PACKAGES[@]}" >/dev/null
+  stow --dir "$DOTFILES_DIR" --target "$HOME" --restow --no-folding "${PACKAGES[@]}"
+  chmod 700 "$HOME/.ssh"
+  chmod 600 "$DOTFILES_DIR/ssh/.ssh/config"
+  mkdir -p "$HOME/.ssh/config.d"
+  chmod 700 "$HOME/.ssh/config.d"
+  rollback=false
+  trap - EXIT INT TERM
+  # Retired links and caches are irreversible cleanup, not part of rollback.
+  # Run them only after the managed-link transaction has committed.
+  for relative in "${OBSOLETE_MANAGED_PATHS[@]}"; do
+    target="$HOME/$relative"
+    [[ -L "$target" ]] && unlink "$target"
+  done
+  remove_obsolete_prompt_cache false
+  # Preserve local Bash configuration, adding only the shared environment hook.
+  # Like the cleanup above, these idempotent hooks run after link commit.
+  python3 "$DOTFILES_DIR/scripts/configure-bash"
+  printf 'Linked dotfiles from %s.\n' "$DOTFILES_DIR"
+)
+
+migrate_existing() {
+  local sensitive_dir expected active relative migration_timestamp migration_backup_root migration_verified
+  local -a original_links=(__none__)
+
+  [[ -f "$HOME/.zshrc" && ! -L "$HOME/.zshrc" ]] ||
+    fail "migrate expects an existing regular ~/.zshrc"
+
+  install_dependencies
+  authenticate_secrets
+  "$DOTFILES_DIR/scripts/import-secrets" "$HOME/.zshrc"
+  render_secrets
+
+  migration_timestamp="$(date +%Y%m%d-%H%M%S)-$$"
+  migration_backup_root="$HOME/.dotfiles-backup/$migration_timestamp"
+  migration_verified=false
+  sensitive_dir="$(mktemp -d "${TMPDIR:-/tmp}/dotfiles-sensitive.XXXXXX")"
+  chmod 700 "$sensitive_dir"
+
+  for relative in "${MANAGED_PATHS[@]}"; do
+    if [[ -L "$HOME/$relative" ]] &&
+      [[ "$(resolved_path "$HOME/$relative" || true)" == "$(managed_source "$relative")" ]]; then
+      original_links+=("$relative")
+    fi
+  done
+
+  was_original_link() {
+    local candidate
+    for candidate in "${original_links[@]}"; do
+      [[ "$candidate" == "$1" ]] && return 0
+    done
+    return 1
+  }
+
+  rollback_migrated_links() {
+    local rollback_target rollback_source rollback_backup
+    for relative in "${MANAGED_PATHS[@]}"; do
+      rollback_target="$HOME/$relative"
+      rollback_source="$(managed_source "$relative")"
+      rollback_backup="$migration_backup_root/$relative"
+
+      if [[ -e "$rollback_backup" ]]; then
+        if [[ -L "$rollback_target" ]] &&
+          [[ "$(resolved_path "$rollback_target" || true)" == "$rollback_source" ]]; then
+          unlink "$rollback_target"
+        elif [[ -e "$rollback_target" || -L "$rollback_target" ]]; then
+          printf 'error: cannot restore %s over an unexpected target\n' "$rollback_target" >&2
+          continue
+        fi
+        mkdir -p "$(dirname "$rollback_target")"
+        mv "$rollback_backup" "$rollback_target"
+      elif ! was_original_link "$relative" &&
+        [[ -L "$rollback_target" ]] &&
+        [[ "$(resolved_path "$rollback_target" || true)" == "$rollback_source" ]]; then
+        unlink "$rollback_target"
+      fi
+    done
+  }
+
+  restore_sensitive_zshrc() {
+    [[ -f "$sensitive_dir/.zshrc" ]] || return 0
+    expected="$(managed_source .zshrc)"
+    active="$(resolved_path "$HOME/.zshrc" || true)"
+    if [[ -L "$HOME/.zshrc" && "$active" == "$expected" ]]; then
+      unlink "$HOME/.zshrc"
+    elif [[ -e "$HOME/.zshrc" || -L "$HOME/.zshrc" ]]; then
+      printf 'error: cannot restore the original .zshrc over unexpected %s\n' "$HOME/.zshrc" >&2
+      printf 'The protected original remains at %s/.zshrc\n' "$sensitive_dir" >&2
+      return 1
+    fi
+    mv "$sensitive_dir/.zshrc" "$HOME/.zshrc"
+    rmdir "$sensitive_dir"
+  }
+  restore_migration() {
+    if [[ "$migration_verified" == true ]]; then
+      rm -f "$sensitive_dir/.zshrc"
+      rmdir "$sensitive_dir" 2>/dev/null || true
+    else
+      rollback_migrated_links
+      restore_sensitive_zshrc
+    fi
+  }
+  trap restore_migration EXIT
+  trap 'exit 130' INT
+  trap 'exit 143' TERM
+
+  mv "$HOME/.zshrc" "$sensitive_dir/.zshrc"
+
+  # Run linking in a subshell so its rollback trap cannot replace this
+  # migration's restore path if Stow fails.
+  (
+    export DOTFILES_BACKUP_TIMESTAMP="$migration_timestamp"
+    link_dotfiles
+  )
+  configure_integrations
+  configure_ai_usage
+  doctor
+
+  migration_verified=true
+  rm "$sensitive_dir/.zshrc"
+  rmdir "$sensitive_dir"
+  trap - EXIT INT TERM
+}
+
+doctor() {
+  if [[ "$PLATFORM" == linux ]]; then linux_doctor; return; fi
+  "$DOTFILES_DIR/scripts/check"
+
+  local relative expected actual secret_file secret_mode
+  local herdr_integration herdr_integration_status
+  for relative in "${MANAGED_PATHS[@]}"; do
+    [[ -L "$HOME/$relative" ]] || fail "$HOME/$relative is not a symlink"
+    expected="$(managed_source "$relative")"
+    actual="$(resolved_path "$HOME/$relative" || true)"
+    [[ "$actual" == "$expected" ]] ||
+      fail "$HOME/$relative resolves to ${actual:-a missing target}, expected $expected"
+  done
+
+  secret_file="$HOME/.config/zsh/secrets.zsh"
+  if [[ "$WITHOUT_SECRETS" == false ]]; then
+    [[ -f "$secret_file" ]] || fail "$secret_file is missing"
+    secret_mode="$(file_mode "$secret_file")"
+    [[ "$secret_mode" == 600 ]] || fail "$secret_file has mode $secret_mode, expected 600"
+  fi
+
+  (
+    cd "${TMPDIR:-/tmp}"
+    DOTFILES_WITHOUT_SECRETS="$WITHOUT_SECRETS" zsh -lic '
+      set -e
+      alias gs >/dev/null
+      alias pn >/dev/null
+      (( ${+functions[_zsh_autosuggest_start]} ))
+      (( ${+functions[_zsh_highlight]} ))
+      [[ -n "$commands[oh-my-posh]" ]]
+      [[ "$POSH_CONFIG" == "$HOME/.config/oh-my-posh/shell.omp.json" ]]
+      [[ -n "$commands[brew]" ]]
+      [[ -n "$commands[node]" ]]
+      [[ -n "$commands[npm]" ]]
+      (( ${+functions[nvm]} ))
+      [[ "${path[(r)$HOME/.local/bin]}" == "$HOME/.local/bin" ]]
+      [[ "$DOTFILES_WITHOUT_SECRETS" == true ]] && exit 0
+      [[ -n "$AI_COMMIT_HOOK_API_KEY" ]]
+      [[ -n "$STORYBLOK_MCP_TOKEN" ]]
+      [[ -n "$TODOIST_MCP_TOKEN" ]]
+      [[ -n "$NOTION_PRIVATE_TOKEN" ]]
+      [[ -n "$GOOGLE_CLOUD_CLIENT_KEY" ]]
+    ' >/dev/null 2>&1
+  ) || fail "Zsh runtime configuration check failed"
+
+  # Hosts, addresses and users are machine-local (~/.ssh/config.d/), so only
+  # the tracked structure and a clean parse are checked here.
+  grep -Fqx 'Include ~/.ssh/config.d/*' "$DOTFILES_DIR/ssh/.ssh/config" || fail "SSH config does not include ~/.ssh/config.d/"
+  [[ -d "$HOME/.ssh/config.d" ]] || fail "$HOME/.ssh/config.d is missing; run ./bootstrap link"
+  ssh -G localhost >/dev/null 2>&1 || fail "SSH configuration does not parse"
+
+  need nvim
+  need rg
+  need tree-sitter
+  NVIM_LOG_FILE=/dev/null nvim --headless --noplugin -i NONE \
+    -u "$HOME/.config/nvim/init.lua" \
+    +':if get(g:, "colors_name", "") !=# "catppuccin" | cquit | endif' \
+    +qa >/dev/null 2>&1 || fail "Neovim configuration check failed"
+
+  need herdr
+  HERDR_CONFIG_PATH="$HOME/.config/herdr/config.toml" herdr config check >/dev/null 2>&1 ||
+    fail "Herdr configuration check failed"
+  herdr_integration_status="$(herdr integration status)"
+  for herdr_integration in "${HERDR_INTEGRATIONS[@]}"; do
+    grep -Eq "^${herdr_integration}: current \\(v[0-9]+\\)" <<<"$herdr_integration_status" ||
+      fail "Herdr $herdr_integration integration is not current"
+  done
+  "$DOTFILES_DIR/scripts/install-herdr-skill" --check
+
+  need codexbar
+  need ai-usage
+  launchctl print "gui/$(id -u)/$AI_USAGE_AGENT_LABEL" >/dev/null 2>&1 ||
+    fail "AI usage refresh job is not registered with launchd"
+
+  need oh-my-posh
+  need jq
+  (
+    cd "${TMPDIR:-/tmp}"
+    oh-my-posh print primary --plain --shell zsh --pwd "$DOTFILES_DIR" \
+      --config "$HOME/.config/oh-my-posh/shell.omp.json" >/dev/null 2>&1
+  ) || fail "Oh My Posh shell configuration check failed"
+  jq -e --arg command "$CLAUDE_STATUSLINE_COMMAND" \
+      '.statusLine == {
+        type: "command",
+        command: $command,
+        padding: 0
+      }' "$HOME/.claude/settings.json" >/dev/null ||
+    fail "Claude Code status line is not configured"
+
+  need ghostty
+  ghostty_config="$(ghostty +show-config --changes-only=false 2>/dev/null)"
+  grep -Fqx 'font-family = MesloLGS NF' <<<"$ghostty_config" || fail "Ghostty has the wrong font"
+  grep -Fqx 'font-size = 16' <<<"$ghostty_config" || fail "Ghostty has the wrong font size"
+  grep -Fqx 'theme = Catppuccin Mocha' <<<"$ghostty_config" || fail "Ghostty has the wrong theme"
+  grep -Fqx 'background-opacity = 1' <<<"$ghostty_config" || fail "Ghostty is not fully opaque"
+  grep -Fqx 'macos-titlebar-style = native' <<<"$ghostty_config" || fail "Ghostty does not use the native title bar"
+  grep -Fqx 'keybind = shift+enter=text:\\x1b\\r' <<<"$ghostty_config" || fail "Ghostty has the wrong Shift+Enter binding"
+  unset ghostty_config
+
+  [[ "$WITHOUT_SECRETS" == false ]] || printf 'Secrets verification skipped; authentication remains pending.\n'
+  printf 'Dotfiles checks passed.\n'
+}
+
+# shellcheck source=scripts/lib/platform.sh
+source "$DOTFILES_DIR/scripts/lib/platform.sh"
+select_platform "$@"
+case "$BOOTSTRAP_COMMAND" in
+  all)
+    install_dependencies
+    if [[ "$WITHOUT_SECRETS" == false ]]; then
+      authenticate_secrets
+      render_secrets
+    fi
+    link_dotfiles
+    configure_integrations
+    configure_ai_usage
+    doctor
+    ;;
+  migrate) migrate_existing ;;
+  install) install_dependencies ;;
+  auth) authenticate_secrets; render_secrets ;;
+  secrets) render_secrets ;;
+  integrations) configure_integrations ;;
+  usage) configure_ai_usage "${USAGE_RELOAD:-false}" ;;
+  link) link_dotfiles ;;
+  doctor) doctor ;;
+esac

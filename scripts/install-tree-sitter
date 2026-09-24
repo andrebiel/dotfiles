@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Can also repair an existing Linux setup without reinstalling every tool.
+[[ "$(uname -s)" == Linux ]] || { echo 'Use brew install tree-sitter-cli on macOS.' >&2; exit 1; }
+case "$(uname -m)" in
+  x86_64) ts_arch=x64 ;;
+  aarch64|arm64) ts_arch=arm64 ;;
+  *) echo 'Supported architectures: x86_64 and arm64' >&2; exit 1 ;;
+esac
+ts_version=0.27.0
+if command -v tree-sitter >/dev/null &&
+  [[ "$(tree-sitter --version)" == "tree-sitter $ts_version"* ]]; then
+  printf 'Tree-sitter %s is already installed.\n' "$ts_version"
+  exit 0
+fi
+ts_work="$(mktemp -d)"
+trap 'rm -rf "$ts_work"' EXIT
+curl -fL --retry 3 "https://github.com/tree-sitter/tree-sitter/releases/download/v$ts_version/tree-sitter-linux-$ts_arch.gz" -o "$ts_work/tree-sitter.gz"
+gzip -dc "$ts_work/tree-sitter.gz" >"$ts_work/tree-sitter"
+chmod 755 "$ts_work/tree-sitter"
+"$ts_work/tree-sitter" --version
+mkdir -p "$HOME/.local/bin"
+install -m 755 "$ts_work/tree-sitter" "$HOME/.local/bin/tree-sitter"

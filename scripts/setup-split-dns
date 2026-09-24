@@ -1,0 +1,142 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Opt-in, per-Mac setup. Run as your normal user, never with sudo.
+# Routes DNS for one domain through the nameservers of a Tunnelblick VPN while
+# every other name keeps using the system (and Tailscale) resolvers.
+usage() {
+  printf 'Usage: %s --profile NAME DOMAIN NAMESERVER [NAMESERVER...]\n' "$0"
+  printf 'Quit Tunnelblick first. Installs split DNS for DOMAIN and saves an undo script.\n'
+  printf 'No domain or nameserver is stored in this repository; pass your own values.\n'
+}
+
+profile=""
+positional=()
+while (($#)); do
+  case "$1" in
+    --help|-h) usage; exit 0 ;;
+    --profile) [[ $# -ge 2 ]] || { usage >&2; exit 1; }; profile="$2"; shift 2 ;;
+    --profile=*) profile="${1#--profile=}"; shift ;;
+    --) shift; positional+=("$@"); break ;;
+    -*) usage >&2; exit 1 ;;
+    *) positional+=("$1"); shift ;;
+  esac
+done
+[[ ${#positional[@]} -ge 2 ]] || { usage >&2; exit 1; }
+domain="${positional[0]}"
+nameservers=("${positional[@]:1}")
+
+[[ "$(uname -s)" == Darwin ]] || { echo 'Requires macOS; see --help.' >&2; exit 1; }
+[[ $EUID -ne 0 ]] || { echo 'Run as your normal user, without sudo.' >&2; exit 1; }
+[[ -n "$profile" && "$profile" != -* && "$profile" != */* ]] || { echo 'Expected a top-level Tunnelblick profile name via --profile.' >&2; exit 1; }
+[[ "$domain" =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$ && ${#domain} -le 253 ]] ||
+  { echo "Expected a lowercase domain with at least two labels, got '$domain'." >&2; exit 1; }
+for nameserver in "${nameservers[@]}"; do
+  if [[ "$nameserver" =~ ^([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})$ ]]; then
+    for octet in "${BASH_REMATCH[@]:1}"; do
+      ((octet <= 255)) || { echo "Invalid IPv4 nameserver '$nameserver'." >&2; exit 1; }
+    done
+  elif [[ "$nameserver" =~ ^[0-9a-fA-F:]+$ && "$nameserver" == *:* ]]; then
+    :
+  else
+    echo "Expected an IPv4 or IPv6 nameserver address, got '$nameserver'." >&2; exit 1
+  fi
+done
+if pgrep -x Tunnelblick >/dev/null || pgrep -x openvpn >/dev/null; then
+  echo 'Disconnect VPN connections and quit Tunnelblick before setup.' >&2
+  exit 1
+fi
+if [[ ! -d "$HOME/Library/Application Support/Tunnelblick/Configurations/$profile.tblk" &&
+      ! -d "/Library/Application Support/Tunnelblick/Shared/$profile.tblk" ]]; then
+  echo "Install the Tunnelblick profile '$profile' first." >&2
+  exit 1
+fi
+
+tunnelblick=net.tunnelblick.tunnelblick
+dns_key="${profile}useDNS"
+ipv6_key="${profile}-doNotDisableIpv6onTun"
+resolver="/etc/resolver/$domain"
+[[ ! -L "$resolver" && ( ! -e "$resolver" || -f "$resolver" ) ]] || { echo "Refusing to replace non-regular $resolver" >&2; exit 1; }
+
+umask 077
+mkdir -p "$HOME/.dotfiles-backup"
+backup="$(mktemp -d "$HOME/.dotfiles-backup/split-dns.$domain.XXXXXX")"
+source_file="$backup/installed-resolver"
+{
+  printf '# Resolve %s through the VPN nameservers. Installed by dotfiles setup-split-dns.\n' "$domain"
+  for nameserver in "${nameservers[@]}"; do printf 'nameserver %s\n' "$nameserver"; done
+  printf 'timeout 3\n'
+} >"$source_file"
+
+if cmp -s "$source_file" "$resolver" &&
+   [[ "$(defaults read "$tunnelblick" "$dns_key" 2>/dev/null || true)" == 0 &&
+      "$(defaults read "$tunnelblick" "$ipv6_key" 2>/dev/null || true)" == 1 ]]; then
+  rm -rf "$backup"
+  echo "Split DNS for $domain is already installed. No changes."
+  echo "Use fully qualified names under $domain; no search suffix is added."
+  exit 0
+fi
+
+# Use the terminal's sudo prompt, or macOS's native password dialog without a TTY.
+admin() {
+  if [[ -t 0 ]] || sudo -n true 2>/dev/null; then
+    sudo "$@"
+  else
+    /usr/bin/osascript - "$@" <<'APPLESCRIPT'
+on run argv
+  set commandText to ""
+  repeat with argument in argv
+    set commandText to commandText & quoted form of (contents of argument) & " "
+  end repeat
+  do shell script commandText with administrator privileges
+end run
+APPLESCRIPT
+  fi
+}
+
+if [[ -f "$resolver" ]]; then
+  cp -p "$resolver" "$backup/previous-resolver"
+fi
+
+# Save only the two preferences we change, never VPN profiles or credentials.
+undo="$backup/undo"
+{
+  printf '#!/usr/bin/env bash\nset -euo pipefail\n'
+  printf '[[ $EUID -ne 0 ]] || { echo "Run without sudo." >&2; exit 1; }\n'
+  printf 'if pgrep -x Tunnelblick >/dev/null || pgrep -x openvpn >/dev/null; then echo "Quit Tunnelblick first." >&2; exit 1; fi\n'
+  declare -f admin
+  printf 'cmp -s %q %q || { echo "Resolver changed since setup; restore manually from this backup." >&2; exit 1; }\n' "$resolver" "$source_file"
+  if [[ -f "$backup/previous-resolver" ]]; then
+    printf 'admin /usr/bin/install -o root -g wheel -m 644 %q %q\n' "$backup/previous-resolver" "$resolver"
+  else
+    printf 'admin /bin/rm %q\n' "$resolver"
+  fi
+  for key in "$dns_key" "$ipv6_key"; do
+    if previous="$(defaults read "$tunnelblick" "$key" 2>/dev/null)"; then
+      preference_type="$(defaults read-type "$tunnelblick" "$key")"
+      case "$preference_type" in
+        'Type is boolean') type=bool ;;
+        'Type is integer') type=int ;;
+        *) echo "Unexpected preference type for $key: $preference_type" >&2; exit 1 ;;
+      esac
+      printf 'defaults write %q %q -%s %q\n' "$tunnelblick" "$key" "$type" "$previous"
+    else
+      printf 'defaults delete %q %q >/dev/null 2>&1 || true\n' "$tunnelblick" "$key"
+    fi
+  done
+  printf '/usr/bin/dscacheutil -flushcache\necho "Previous split DNS settings for %s restored. Reopen Tunnelblick."\n' "$domain"
+} >"$undo"
+chmod 700 "$undo"
+bash -n "$undo"
+
+printf 'Backup and undo script: %s\n' "$undo"
+admin /bin/sh -c 'mkdir -p /etc/resolver && /usr/bin/install -o root -g wheel -m 644 "$1" "$2"' sh "$source_file" "$resolver"
+defaults write "$tunnelblick" "$dns_key" -int 0
+defaults write "$tunnelblick" "$ipv6_key" -bool true
+/usr/bin/dscacheutil -flushcache
+cmp "$source_file" "$resolver"
+[[ "$(defaults read "$tunnelblick" "$dns_key")" == 0 ]]
+[[ "$(defaults read "$tunnelblick" "$ipv6_key")" == 1 ]]
+printf 'Installed split DNS for %s via profile %s. Reopen Tunnelblick and connect.\n' "$domain" "$profile"
+printf 'Use fully qualified names under %s; no search suffix is added.\n' "$domain"
+printf 'To undo, quit Tunnelblick and run: %q\n' "$undo"
