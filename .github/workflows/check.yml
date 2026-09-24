@@ -28,6 +28,7 @@ jobs:
             herdr \
             jq \
             neovim \
+            ripgrep \
             stow \
             jandedobbeleer/oh-my-posh/oh-my-posh
 
