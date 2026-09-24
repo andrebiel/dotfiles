@@ -169,7 +169,8 @@ git -C "$search_root" init -q
 printf '.env\n.env.*\n' >"$search_root/.gitignore"
 : >"$search_root/.env"
 : >"$search_root/notes/.env.local"
-HERDR_TEST_REAL_RG="$(command -v rg)" run_helper 1
+real_rg="$(command -v rg)" || fail 'ripgrep is required for the ignore-rules case'
+HERDR_TEST_REAL_RG="$real_rg" run_helper 1
 python3 - "$fzf_input" <<'PY'
 import sys
 from pathlib import Path
