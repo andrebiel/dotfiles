@@ -12,6 +12,8 @@ brew "jq"
 brew "lazygit"
 brew "neovim"
 brew "nvm"
+# Mason installs basedpyright via pip, which needs Python >= 3.10.
+brew "python"
 brew "jandedobbeleer/oh-my-posh/oh-my-posh"
 brew "ripgrep"
 brew "stow"
