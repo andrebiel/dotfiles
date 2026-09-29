@@ -262,11 +262,11 @@ and macOS `man 5 resolver`.
 
 Ghostty is fully opaque, uses the native macOS title bar, and uses its bundled
 Catppuccin Mocha theme. Oh My Posh uses matching local configurations: Zsh
-shows the last two directory names (`~` for home), the bold Git branch with its
-status, and command input below it. SSH sessions prefix the line with the
-machine name in peach; local sessions show no host. The same line appears in
-Claude Code, which adds its active model in bold on a second line. Agents
-without a native Oh My Posh
+starts with a green laptop icon locally or a peach server icon and machine name
+over SSH, then a folder icon with the last two directory names (`~` for home),
+the bold Git branch with its status, and command input below it. The same line
+appears in Claude Code, which appends its active model in bold. Agents without
+a native Oh My Posh
 status-line integration do not show guessed values. Neovim 0.12 uses its
 bundled Catppuccin colorscheme in dark mode (Mocha), and Herdr uses its matching
 built-in `catppuccin` theme with a 32-column sidebar and workspace/branch rows.
