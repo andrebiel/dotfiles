@@ -16,7 +16,7 @@
           "alias": "claude_session",
           "style": "plain",
           "foreground": "p:peach",
-          "template": " 󰯉 {{ .Model.DisplayName }} {{ .FormattedCost }} "
+          "template": "\n <b>󰯉 {{ .Model.DisplayName }}</b> "
         }
       ]
     }
