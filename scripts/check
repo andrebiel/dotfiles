@@ -43,7 +43,11 @@ if command -v oh-my-posh >/dev/null 2>&1; then
     claude_sample='{"cwd":"/tmp/project","session_id":"test","model":{"id":"claude-test","display_name":"Claude Test"},"cost":{"total_cost_usd":0.125},"context_window":{"total_input_tokens":100,"total_output_tokens":20,"context_window_size":200000}}'
     claude_output="$(printf '%s' "$claude_sample" | oh-my-posh claude \
       --config "$DOTFILES_DIR/zsh/.config/oh-my-posh/claude.omp.json")"
-    grep -Eq 'Claude Test.*\$0\.12' <<<"$claude_output"
+    grep -Fq 'Claude Test' <<<"$claude_output"
+    if grep -Fq '$0.12' <<<"$claude_output"; then
+      printf 'error: Claude status line still shows the session cost\n' >&2
+      exit 1
+    fi
   )
 fi
 
@@ -142,10 +146,10 @@ for package in herdr herdr-linux; do
   grep -Fqx 'new_worktree = "prefix+t"' "$DOTFILES_DIR/$package/.config/herdr/config.toml"
 done
 grep -Fqx 'directory = "~/dev/worktrees"' "$DOTFILES_DIR/herdr/.config/herdr/config.toml"
-grep -Fqx 'key = "prefix+u"' "$DOTFILES_DIR/herdr/.config/herdr/config.toml"
-grep -Fqx 'command = "ai-usage show"' "$DOTFILES_DIR/herdr/.config/herdr/config.toml"
-grep -Fqx 'width = "90%"' "$DOTFILES_DIR/herdr/.config/herdr/config.toml"
-grep -Fqx 'height = "85%"' "$DOTFILES_DIR/herdr/.config/herdr/config.toml"
+if grep -Fq 'ai-usage' "$DOTFILES_DIR/herdr/.config/herdr/config.toml"; then
+  printf 'error: Herdr still binds the AI usage popup\n' >&2
+  exit 1
+fi
 grep -Fqx 'key = "prefix+f"' "$DOTFILES_DIR/herdr/.config/herdr/config.toml"
 grep -Fqx 'command = "herdr-fuzzy-open"' "$DOTFILES_DIR/herdr/.config/herdr/config.toml"
 grep -Fqx 'description = "find and open files"' "$DOTFILES_DIR/herdr/.config/herdr/config.toml"

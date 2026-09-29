@@ -261,11 +261,12 @@ and macOS `man 5 resolver`.
 ## Terminal and editor theme
 
 Ghostty is fully opaque, uses the native macOS title bar, and uses its bundled
-Catppuccin Mocha theme. Oh My Posh uses matching local configurations: Zsh has
-a green `LOCAL user@machine` or peach `SSH user@machine` indicator, the full
-directory path (`~` for home), and Git status with command input below it. The
-shared context also appears in Claude Code, which
-adds its active model and session cost. Agents without a native Oh My Posh
+Catppuccin Mocha theme. Oh My Posh uses matching local configurations: Zsh
+starts with a green laptop icon locally or a peach server icon and machine name
+over SSH, then a folder icon with the last two directory names (`~` for home),
+the bold Git branch with its status, and command input below it. The same line
+appears in Claude Code, which appends its active model in bold. Agents without
+a native Oh My Posh
 status-line integration do not show guessed values. Neovim 0.12 uses its
 bundled Catppuccin colorscheme in dark mode (Mocha), and Herdr uses its matching
 built-in `catppuccin` theme with a 32-column sidebar and workspace/branch rows.
@@ -386,11 +387,11 @@ to override the system opener.
 
 ## AI usage
 
-Press `Ctrl+Space`, then `u` in Herdr to open the full terminal dashboard. It
-shows estimated API-equivalent cost and tokens for today, 7 days, and 30 days,
-provider/model breakdowns, current Codex/Claude/Cursor limits, and Cursor's
+Run `ai-usage show` to open the full terminal dashboard. It shows estimated
+API-equivalent cost and tokens for today, 7 days, and 30 days, provider/model
+breakdowns, current Codex/Claude/Cursor limits, and Cursor's
 accepted-versus-suggested lines. Press `r` to refresh limits and `q` or `Esc` to
-close the popup.
+close it.
 
 The dashboard uses the CodexBar CLI only; it does not install or run the macOS
 menu bar app. Codex and Claude costs come from local native session logs. Cursor
@@ -399,9 +400,9 @@ costs, so Cursor is excluded from the dollar estimate. The displayed dollars
 are an API-price estimate, not subscription billing.
 
 `dev.andrebiel.ai-usage` refreshes the local history cache every five minutes.
-Online quota checks happen when the popup opens or when `r` is pressed. Cached
-data lives under `~/Library/Caches/ai-usage/`; prompts and responses are never
-copied into that cache.
+Online quota checks happen when the dashboard opens or when `r` is pressed.
+Cached data lives under `~/Library/Caches/ai-usage/`; prompts and responses are
+never copied into that cache.
 
 SSH keys, `known_hosts`, per-machine SSH hosts in `~/.ssh/config.d/`,
 Conductor-generated configuration, VPN domains and nameservers, OAuth files,

@@ -20,13 +20,13 @@
           "foreground_templates": [
             "{{ if .SSHSession }}p:peach{{ end }}"
           ],
-          "template": " {{ if .SSHSession }}SSH{{ else }}LOCAL{{ end }} {{ .UserName }}@{{ .HostName }} "
+          "template": " {{ if .SSHSession }} {{ .HostName }}{{ else }}{{ end }} "
         },
         {
           "type": "path",
           "style": "plain",
           "foreground": "p:lavender",
-          "template": "   {{ .Path }} ",
+          "template": "   {{ $parts := splitList \"/\" .Path }}{{ if le (len $parts) 2 }}{{ .Path }}{{ else }}{{ slice $parts (sub (len $parts) 2) | join \"/\" }}{{ end }} ",
           "options": {
             "style": "full",
             "home_icon": "~"
@@ -36,7 +36,7 @@
           "type": "git",
           "style": "plain",
           "foreground": "p:blue",
-          "template": "  {{ .HEAD }}{{ if .BranchStatus }} {{ .BranchStatus }}{{ end }}{{ if .Staging.Changed }} ●{{ .Staging.String }}{{ end }}{{ if .Working.Changed }} ✚{{ .Working.String }}{{ end }} ",
+          "template": "  <b> {{ .HEAD }}</b>{{ if .BranchStatus }} {{ .BranchStatus }}{{ end }}{{ if .Staging.Changed }} ●{{ .Staging.String }}{{ end }}{{ if .Working.Changed }} ✚{{ .Working.String }}{{ end }} ",
           "options": {
             "fetch_status": true,
             "fetch_upstream_icon": false,

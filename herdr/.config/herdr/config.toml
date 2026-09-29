@@ -36,14 +36,6 @@ tab_id=$(printf '%s' "$created" | jq -er '.result.tab.tab_id') || exit 1
 '''
 
 [[keys.command]]
-key = "prefix+u"
-type = "popup"
-command = "ai-usage show"
-description = "show AI usage"
-width = "90%"
-height = "85%"
-
-[[keys.command]]
 key = "prefix+f"
 type = "popup"
 command = "herdr-fuzzy-open"
