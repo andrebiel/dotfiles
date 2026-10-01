@@ -45,6 +45,13 @@ width = "85%"
 height = "75%"
 
 [[keys.command]]
+key = "prefix+shift+f"
+type = "shell"
+# SSH-started servers may not include ~/.local/bin in PATH.
+command = '"$HOME/.local/bin/herdr-open-project"'
+description = "open project folder in the file manager"
+
+[[keys.command]]
 key = "prefix+alt+g"
 type = "popup"
 # SSH-started servers may not include ~/.local/bin in PATH.

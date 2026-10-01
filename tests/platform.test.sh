@@ -15,7 +15,7 @@ for platform in macos linux; do
   [[ "$(realpath "$home/.config/nvim/init.lua")" == "$DOTFILES_DIR/nvim/.config/nvim/init.lua" ]]
   [[ -L "$home/.ssh/config" ]]
   [[ -L "$home/.config/herdr/config.toml" ]] || { echo "not ok - $platform Herdr config missing" >&2; exit 1; }
-  for helper in herdr-fuzzy-open; do
+  for helper in herdr-fuzzy-open herdr-open-project; do
     [[ -x "$home/.local/bin/$helper" ]] || { echo "not ok - $platform $helper missing" >&2; exit 1; }
   done
   grep -Fqx 'directory = "~/dev/worktrees"' "$home/.config/herdr/config.toml" || { echo "not ok - $platform worktree directory is not portable" >&2; exit 1; }

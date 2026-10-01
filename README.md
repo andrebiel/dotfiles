@@ -381,9 +381,17 @@ navigation. Press `Tab` to select multiple files. `Enter` opens the selection
 with the system application (`open` on macOS, `xdg-open` on Linux; a desktop
 session is needed there). `Ctrl+O` closes the picker and opens Neovim in a new,
 focused Herdr tab in the same workspace and directory. Multiple selected files
-become buffers in that one editor. `Esc` cancels the picker.
-Set `HERDR_EDITOR_BIN` to override the editor executable and `HERDR_OPEN_BIN`
-to override the system opener.
+become buffers in that one editor. `Ctrl+Y` copies the selected files
+themselves to the clipboard, ready to paste into Finder, Mail or a chat app; on
+Linux this offers a `text/uri-list` through `wl-copy` or `xclip` and needs a
+desktop session. `Esc` cancels the picker.
+Set `HERDR_EDITOR_BIN` to override the editor executable, `HERDR_OPEN_BIN`
+to override the system opener, and `HERDR_COPY_BIN` to replace the clipboard
+command (it receives the selected paths as arguments).
+
+Press `Ctrl+Space`, then `Shift+F` to open the active pane's project in Finder
+(the file manager via `xdg-open` on Linux). Inside a Git repository or
+worktree this is its top-level directory; elsewhere it is the pane's directory.
 
 ## AI usage
 

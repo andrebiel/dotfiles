@@ -47,7 +47,8 @@ select_platform() {
     MANAGED_PATHS=(.zshenv .zprofile .zshrc .config/zsh/homebrew.zsh .config/zsh/environment.sh
       .config/oh-my-posh/base.omp.json .config/oh-my-posh/shell.omp.json
       .config/oh-my-posh/claude.omp.json .config/nvim/init.lua .ssh/config
-      .config/herdr/config.toml .local/bin/herdr-fuzzy-open)
+      .config/herdr/config.toml .local/bin/herdr-fuzzy-open
+      .local/bin/herdr-open-project)
   fi
 }
 
@@ -82,7 +83,7 @@ linux_doctor() {
   for relative in "${MANAGED_PATHS[@]}"; do
     [[ -L "$HOME/$relative" && "$(resolved_path "$HOME/$relative")" == "$(managed_source "$relative")" ]] || fail "incorrect link: $HOME/$relative"
   done
-  for tool in zsh stow nvim node npm pnpm bun op oh-my-posh rg fzf gh granted tree-sitter git jq lazygit herdr herdr-fuzzy-open; do need "$tool"; done
+  for tool in zsh stow nvim node npm pnpm bun op oh-my-posh rg fzf gh granted tree-sitter git jq lazygit herdr herdr-fuzzy-open herdr-open-project; do need "$tool"; done
   HERDR_CONFIG_PATH="$HOME/.config/herdr/config.toml" herdr config check >/dev/null || fail 'Herdr configuration check failed'
   local integration integration_status
   integration_status="$(herdr integration status)"
