@@ -58,13 +58,19 @@ copy_files() {
       done
       uri_list+="file://$encoded"$'\r\n'
     done
+    local copy_command=()
     if [[ -n "${WAYLAND_DISPLAY:-}" ]] && command -v wl-copy >/dev/null 2>&1; then
-      printf '%s' "$uri_list" | wl-copy --type text/uri-list
+      copy_command=(wl-copy --type text/uri-list)
     elif [[ -n "${DISPLAY:-}" ]] && command -v xclip >/dev/null 2>&1; then
-      printf '%s' "$uri_list" | xclip -selection clipboard -t text/uri-list
+      copy_command=(xclip -selection clipboard -t text/uri-list)
     else
       fail 'copying files needs a desktop session with wl-copy or xclip'
     fi
+    # Both tools leave a process behind that serves the clipboard; detach its
+    # output so the popup can close. GNOME offers no data-control protocol, so
+    # wl-copy waits for desktop focus and would otherwise hang an idle session.
+    printf '%s' "$uri_list" | timeout 5 "${copy_command[@]}" >/dev/null 2>&1 ||
+      fail 'the desktop clipboard did not respond; use the desktop session directly'
   fi
 }
 
