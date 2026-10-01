@@ -14,6 +14,7 @@ herdr_bin="${HERDR_BIN_PATH:-herdr}"
 # unprefixed IDs. Prefer the popup's caller over any stale server inheritance.
 workspace_id="${HERDR_ACTIVE_WORKSPACE_ID:-${HERDR_WORKSPACE_ID:-}}"
 copy_bin="${HERDR_COPY_BIN:-}"
+tty_path="${HERDR_TTY:-/dev/tty}"
 if [[ "$(uname -s)" == Darwin ]]; then
   open_bin="${HERDR_OPEN_BIN:-open}"
 else
@@ -27,50 +28,16 @@ else
 fi
 search_root="${HERDR_ACTIVE_PANE_CWD:-$PWD}"
 
-# Put the files themselves on the clipboard so Finder, Mail or chat apps can
-# paste them; text-only clipboards would just receive the paths.
-copy_files() {
+# Copy the paths as text, one per line. Linux uses OSC 52: Herdr forwards it to
+# the attached terminal, so the path lands on the clipboard of the machine in
+# front of you, also when Herdr runs over SSH.
+copy_paths() {
   if [[ -n "$copy_bin" ]]; then
-    "$copy_bin" "$@"
+    printf '%s' "$1" | "$copy_bin"
   elif [[ "$(uname -s)" == Darwin ]]; then
-    osascript -l JavaScript -e '
-      ObjC.import("AppKit");
-      function run(argv) {
-        const urls = $.NSMutableArray.array;
-        argv.forEach(path => urls.addObject($.NSURL.fileURLWithPath(path)));
-        const pasteboard = $.NSPasteboard.generalPasteboard;
-        pasteboard.clearContents;
-        if (!pasteboard.writeObjects(urls)) throw new Error("clipboard write failed");
-        // The pasteboard server receives the items asynchronously; exiting at
-        // once drops some or all of them.
-        delay(0.2);
-      }' "$@" >/dev/null
+    printf '%s' "$1" | pbcopy
   else
-    local uri_list='' path encoded hex
-    for path in "$@"; do
-      # Percent-encode byte by byte so UTF-8 and newlines survive the URI.
-      encoded=''
-      for hex in $(printf '%s' "$path" | od -An -v -tx1); do
-        case "$hex" in
-          2[def]|3[0-9]|4[1-9a-f]|5[0-9a]|5f|6[1-9a-f]|7[0-9a]|7e) printf -v hex "\\x$hex"; encoded+="$hex" ;;
-          *) printf -v hex '%%%02X' "0x$hex"; encoded+="$hex" ;;
-        esac
-      done
-      uri_list+="file://$encoded"$'\r\n'
-    done
-    local copy_command=()
-    if [[ -n "${WAYLAND_DISPLAY:-}" ]] && command -v wl-copy >/dev/null 2>&1; then
-      copy_command=(wl-copy --type text/uri-list)
-    elif [[ -n "${DISPLAY:-}" ]] && command -v xclip >/dev/null 2>&1; then
-      copy_command=(xclip -selection clipboard -t text/uri-list)
-    else
-      fail 'copying files needs a desktop session with wl-copy or xclip'
-    fi
-    # Both tools leave a process behind that serves the clipboard; detach its
-    # output so the popup can close. GNOME offers no data-control protocol, so
-    # wl-copy waits for desktop focus and would otherwise hang an idle session.
-    printf '%s' "$uri_list" | timeout 5 "${copy_command[@]}" >/dev/null 2>&1 ||
-      fail 'the desktop clipboard did not respond; use the desktop session directly'
+    printf '\033]52;c;%s\a' "$(printf '%s' "$1" | base64 | tr -d '\n')" >"$tty_path"
   fi
 }
 
@@ -103,7 +70,7 @@ set +e
       --border=rounded \
       --info=inline \
       --prompt='Normal> ' \
-      --header='j/k navigate · / search · Ctrl-G normal · Tab select · Enter open · Ctrl-O editor tab · Ctrl-Y copy · Esc close' \
+      --header='j/k navigate · / search · Ctrl-G normal · Tab select · Enter open · Ctrl-O editor tab · Ctrl-Y copy path · Esc close' \
       --bind=j:down,k:up \
       --bind='/:enable-search+unbind(j,k,/)+change-prompt(Search> )' \
       --bind='ctrl-g:disable-search+rebind(j,k,/)+change-prompt(Normal> )' >"$selection_file"
@@ -118,6 +85,7 @@ case "$picker_status" in
 esac
 
 selected_files=()
+selected_paths=''
 {
   # With --expect and --print0, fzf prefixes selections with a NUL-delimited
   # key name (empty for Enter). Keep filenames NUL-delimited as well.
@@ -126,6 +94,7 @@ selected_files=()
     selected_path="$search_root/$relative_path"
     [[ -f "$selected_path" ]] || fail "file no longer exists: $selected_path"
     selected_files+=("$selected_path")
+    selected_paths+="${selected_paths:+$'\n'}$relative_path"
   done
 } <"$selection_file"
 ((${#selected_files[@]} > 0)) || exit 0
@@ -153,7 +122,7 @@ case "$action" in
     "$herdr_bin" tab focus "$tab_id" >/dev/null
     ;;
   ctrl-y)
-    copy_files "${selected_files[@]}"
+    copy_paths "$selected_paths"
     ;;
   *) fail "unexpected picker action: $action" ;;
 esac
