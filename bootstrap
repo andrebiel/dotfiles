@@ -18,6 +18,7 @@ MANAGED_PATHS=(
   .config/oh-my-posh/claude.omp.json
   .config/herdr/config.toml
   .local/bin/herdr-fuzzy-open
+  .local/bin/herdr-open-project
   .config/nvim/init.lua
   .local/bin/ai-usage
   .local/lib/ai-usage/dashboard.js
@@ -381,7 +382,7 @@ managed_source() {
         printf '%s/herdr/%s\n' "$DOTFILES_DIR" "$1"
       fi
       ;;
-    .local/bin/herdr-fuzzy-open)
+    .local/bin/herdr-fuzzy-open|.local/bin/herdr-open-project)
       printf '%s/herdr/%s\n' "$DOTFILES_DIR" "$1"
       ;;
     .local/bin/herdr-fresh-worktree)

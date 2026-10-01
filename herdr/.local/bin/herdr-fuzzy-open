@@ -13,12 +13,33 @@ herdr_bin="${HERDR_BIN_PATH:-herdr}"
 # Custom-command popups receive ACTIVE_* context; normal panes receive the
 # unprefixed IDs. Prefer the popup's caller over any stale server inheritance.
 workspace_id="${HERDR_ACTIVE_WORKSPACE_ID:-${HERDR_WORKSPACE_ID:-}}"
+copy_bin="${HERDR_COPY_BIN:-}"
+tty_path="${HERDR_TTY:-/dev/tty}"
 if [[ "$(uname -s)" == Darwin ]]; then
   open_bin="${HERDR_OPEN_BIN:-open}"
 else
   open_bin="${HERDR_OPEN_BIN:-xdg-open}"
+  # SSH-started Herdr servers lack the desktop session; borrow the local one.
+  runtime_dir="/run/user/$(id -u)"
+  if [[ -z "${WAYLAND_DISPLAY:-}${DISPLAY:-}" && -S "$runtime_dir/wayland-0" ]]; then
+    export XDG_RUNTIME_DIR="$runtime_dir" WAYLAND_DISPLAY=wayland-0
+    [[ -S "$runtime_dir/bus" ]] && export DBUS_SESSION_BUS_ADDRESS="unix:path=$runtime_dir/bus"
+  fi
 fi
 search_root="${HERDR_ACTIVE_PANE_CWD:-$PWD}"
+
+# Copy the paths as text, one per line. Linux uses OSC 52: Herdr forwards it to
+# the attached terminal, so the path lands on the clipboard of the machine in
+# front of you, also when Herdr runs over SSH.
+copy_paths() {
+  if [[ -n "$copy_bin" ]]; then
+    printf '%s' "$1" | "$copy_bin"
+  elif [[ "$(uname -s)" == Darwin ]]; then
+    printf '%s' "$1" | pbcopy
+  else
+    printf '\033]52;c;%s\a' "$(printf '%s' "$1" | base64 | tr -d '\n')" >"$tty_path"
+  fi
+}
 
 command -v "$rg_bin" >/dev/null 2>&1 || fail "ripgrep is required"
 command -v "$fzf_bin" >/dev/null 2>&1 || fail "fzf is required"
@@ -43,13 +64,13 @@ set +e
       --read0 \
       --print0 \
       --multi \
-      --expect=ctrl-o \
+      --expect=ctrl-o,ctrl-y \
       --disabled \
       --layout=reverse \
       --border=rounded \
       --info=inline \
       --prompt='Normal> ' \
-      --header='j/k navigate · / search · Ctrl-G normal · Tab select · Enter open · Ctrl-O editor tab · Esc close' \
+      --header='j/k navigate · / search · Ctrl-G normal · Tab select · Enter open · Ctrl-O editor tab · Ctrl-Y copy path · Esc close' \
       --bind=j:down,k:up \
       --bind='/:enable-search+unbind(j,k,/)+change-prompt(Search> )' \
       --bind='ctrl-g:disable-search+rebind(j,k,/)+change-prompt(Normal> )' >"$selection_file"
@@ -64,6 +85,7 @@ case "$picker_status" in
 esac
 
 selected_files=()
+selected_paths=''
 {
   # With --expect and --print0, fzf prefixes selections with a NUL-delimited
   # key name (empty for Enter). Keep filenames NUL-delimited as well.
@@ -72,6 +94,7 @@ selected_files=()
     selected_path="$search_root/$relative_path"
     [[ -f "$selected_path" ]] || fail "file no longer exists: $selected_path"
     selected_files+=("$selected_path")
+    selected_paths+="${selected_paths:+$'\n'}$relative_path"
   done
 } <"$selection_file"
 ((${#selected_files[@]} > 0)) || exit 0
@@ -97,6 +120,9 @@ case "$action" in
     tab_id="$(jq -er '.result.tab.tab_id' <<<"$created")"
     "$herdr_bin" pane run "$pane_id" "$editor_command"
     "$herdr_bin" tab focus "$tab_id" >/dev/null
+    ;;
+  ctrl-y)
+    copy_paths "$selected_paths"
     ;;
   *) fail "unexpected picker action: $action" ;;
 esac

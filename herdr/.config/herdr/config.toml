@@ -44,6 +44,12 @@ width = "85%"
 height = "75%"
 
 [[keys.command]]
+key = "prefix+shift+f"
+type = "shell"
+command = "herdr-open-project"
+description = "open project folder in Finder"
+
+[[keys.command]]
 key = "prefix+alt+g"
 type = "popup"
 command = "lazygit"

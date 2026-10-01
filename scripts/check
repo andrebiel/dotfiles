@@ -157,6 +157,14 @@ grep -Fqx 'width = "85%"' "$DOTFILES_DIR/herdr/.config/herdr/config.toml"
 grep -Fqx 'height = "75%"' "$DOTFILES_DIR/herdr/.config/herdr/config.toml"
 bash -n "$DOTFILES_DIR/herdr/.local/bin/herdr-fuzzy-open"
 DOTFILES_DIR="$DOTFILES_DIR" "$DOTFILES_DIR/tests/herdr-fuzzy-open.test.sh"
+for package in herdr herdr-linux; do
+  grep -Fqx 'key = "prefix+shift+f"' "$DOTFILES_DIR/$package/.config/herdr/config.toml"
+done
+grep -Fqx 'command = "herdr-open-project"' "$DOTFILES_DIR/herdr/.config/herdr/config.toml"
+grep -Fqx "command = '\"\$HOME/.local/bin/herdr-open-project\"'" \
+  "$DOTFILES_DIR/herdr-linux/.config/herdr/config.toml"
+bash -n "$DOTFILES_DIR/herdr/.local/bin/herdr-open-project"
+DOTFILES_DIR="$DOTFILES_DIR" "$DOTFILES_DIR/tests/herdr-open-project.test.sh"
 grep -Fqx 'rows = [["state_icon", "workspace", "branch", "git_status"]]' \
   "$DOTFILES_DIR/herdr/.config/herdr/config.toml"
 grep -q '^theme = "Catppuccin Mocha"$' \

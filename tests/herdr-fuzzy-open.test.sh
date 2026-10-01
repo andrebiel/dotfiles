@@ -22,6 +22,7 @@ fzf_input="$test_root/fzf.input"
 open_capture="$test_root/open.args"
 editor_capture="$test_root/editor.args"
 herdr_capture="$test_root/herdr.args"
+copy_capture="$test_root/copy.args"
 selection="$test_root/selection"
 helper="${DOTFILES_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}/herdr/.local/bin/herdr-fuzzy-open"
 mkdir -p "$search_root/docs" "$search_root/notes" "$fake_bin"
@@ -57,6 +58,11 @@ cat >"$fake_bin/open" <<'OPEN'
 set -euo pipefail
 printf '%s\0' "$@" >>"$HERDR_TEST_OPEN_CAPTURE"
 OPEN
+cat >"$fake_bin/copy" <<'COPY'
+#!/usr/bin/env bash
+set -euo pipefail
+cat >"$HERDR_TEST_COPY_CAPTURE"
+COPY
 cat >"$fake_bin/nvim" <<'EDITOR'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -73,7 +79,7 @@ case "$1 $2" in
   *) exit 1 ;;
 esac
 HERDR
-chmod +x "$fake_bin/rg" "$fake_bin/fzf" "$fake_bin/open" "$fake_bin/nvim" "$fake_bin/herdr"
+chmod +x "$fake_bin/rg" "$fake_bin/fzf" "$fake_bin/open" "$fake_bin/copy" "$fake_bin/nvim" "$fake_bin/herdr"
 
 run_helper() {
   PATH="$fake_bin:$PATH" \
@@ -86,6 +92,8 @@ run_helper() {
   HERDR_FZF_BIN="$fake_bin/fzf" \
   HERDR_OPEN_BIN="$fake_bin/open" \
   HERDR_EDITOR_BIN="$fake_bin/nvim" \
+  HERDR_COPY_BIN="${HERDR_TEST_COPY_BIN-$fake_bin/copy}" \
+  HERDR_TEST_COPY_CAPTURE="$copy_capture" \
   HERDR_TEST_SELECTION="$selection" \
   HERDR_TEST_EDITOR_CAPTURE="$editor_capture" \
   HERDR_TEST_HERDR_CAPTURE="$herdr_capture" \
@@ -106,7 +114,7 @@ assert_argument --null "$rg_capture"
 assert_argument --read0 "$fzf_capture"
 assert_argument --print0 "$fzf_capture"
 assert_argument --multi "$fzf_capture"
-assert_argument --expect=ctrl-o "$fzf_capture"
+assert_argument --expect=ctrl-o,ctrl-y "$fzf_capture"
 assert_argument --disabled "$fzf_capture"
 assert_argument --bind=j:down,k:up "$fzf_capture"
 assert_argument '--bind=/:enable-search+unbind(j,k,/)+change-prompt(Search> )' "$fzf_capture"
@@ -138,6 +146,21 @@ assert_argument focus "$herdr_capture"
 printf 'ok - Ctrl-O opens one editor tab in the caller workspace and passes filenames safely to Zsh\n'
 
 rm "$editor_capture" "$herdr_capture"
+run_helper 0 ctrl-y
+printf '%s\n' 'docs/page.html' 'notes/read me.txt' 'notes/readme.md' 'config.json' 'README' >"$test_root/copy.expected"
+printf '%s' 'notes/line'$'\n''break.md'$'\n''image.png' >>"$test_root/copy.expected"
+cmp "$test_root/copy.expected" "$copy_capture" || fail 'Ctrl-Y did not copy the relative paths, one per line'
+[[ ! -e "$open_capture" && ! -e "$editor_capture" && ! -e "$herdr_capture" ]] ||
+  fail 'Ctrl-Y opened files instead of copying their paths'
+printf 'ok - Ctrl-Y copies the selected relative paths as text\n'
+
+if [[ "$(uname -s)" != Darwin ]]; then
+  HERDR_TEST_COPY_BIN='' HERDR_TTY="$test_root/tty" run_helper 0 ctrl-y
+  printf '\033]52;c;%s\a' "$(base64 <"$test_root/copy.expected" | tr -d '\n')" >"$test_root/osc52.expected"
+  cmp "$test_root/osc52.expected" "$test_root/tty" || fail 'Ctrl-Y did not send the paths via OSC 52'
+  printf 'ok - Ctrl-Y sends Linux paths to the attached terminal via OSC 52\n'
+fi
+
 run_helper 1
 
 [[ ! -e "$open_capture" ]] || fail "cancelled selection unexpectedly called open"

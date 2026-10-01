@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+fail() {
+  printf 'error: %s\n' "$*" >&2
+  exit 1
+}
+
+if [[ "$(uname -s)" == Darwin ]]; then
+  open_bin="${HERDR_OPEN_BIN:-open}"
+else
+  open_bin="${HERDR_OPEN_BIN:-xdg-open}"
+  # SSH-started Herdr servers lack the desktop session; borrow the local one.
+  runtime_dir="/run/user/$(id -u)"
+  if [[ -z "${WAYLAND_DISPLAY:-}${DISPLAY:-}" && -S "$runtime_dir/wayland-0" ]]; then
+    export XDG_RUNTIME_DIR="$runtime_dir" WAYLAND_DISPLAY=wayland-0
+    [[ -S "$runtime_dir/bus" ]] && export DBUS_SESSION_BUS_ADDRESS="unix:path=$runtime_dir/bus"
+  fi
+fi
+pane_dir="${HERDR_ACTIVE_PANE_CWD:-$PWD}"
+
+command -v "$open_bin" >/dev/null 2>&1 || fail "$open_bin is required"
+[[ -d "$pane_dir" ]] || fail "directory does not exist: $pane_dir"
+
+# The project is the pane's Git worktree; outside Git, the pane directory itself.
+project_dir="$(git -C "$pane_dir" rev-parse --show-toplevel 2>/dev/null)" ||
+  project_dir="$(cd "$pane_dir" && pwd -P)"
+"$open_bin" "$project_dir"
