@@ -1,0 +1,79 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Claude Code mirrors Claude account skills into skills/synced/<org>/<name>.
+# Codex reads ~/.agents/skills and Claude Agent SDK hosts such as t3code read
+# only top-level Claude skills, so both get links to that synced copy.
+DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+list="$DOTFILES_DIR/agents/account-skills"
+agents_skills="$HOME/.agents/skills"
+claude_skills="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills"
+synced="$claude_skills/synced"
+mode="${1:-install}"
+fail() { printf 'error: %s\n' "$*" >&2; exit 1; }
+[[ $# -le 1 && ( "$mode" == install || "$mode" == --check ) ]] ||
+  fail 'usage: link-account-skills [--check]'
+[[ -f "$list" ]] || fail "missing skill list: $list"
+
+# Only links into a synced mirror or to the shared link are ours to replace.
+managed_link() {
+  [[ -L "$1" ]] || return 1
+  case "$(readlink "$1")" in */skills/synced/*|"$agents_skills"/*) return 0 ;; esac
+  return 1
+}
+
+synced_source() {
+  local candidate found=""
+  for candidate in "$synced"/*/"$1"; do
+    [[ -f "$candidate/SKILL.md" ]] || continue
+    [[ -z "$found" ]] || fail "$1 is synced from more than one Claude organization; remove it from one"
+    found="$candidate"
+  done
+  printf '%s\n' "$found"
+}
+
+linked=0
+while IFS= read -r name || [[ -n "$name" ]]; do
+  name="${name%%#*}"
+  name="${name//[[:space:]]/}"
+  [[ -n "$name" ]] || continue
+  [[ "$name" =~ ^[a-z0-9][a-z0-9-]*$ ]] || fail "invalid skill name in $list: $name"
+  agents_link="$agents_skills/$name"
+  claude_link="$claude_skills/$name"
+  source="$(synced_source "$name")"
+
+  if [[ -z "$source" ]]; then
+    printf 'Account skill %s is not synced here yet; sign in to Claude Code, start it once, then run ./bootstrap integrations.\n' "$name"
+    if [[ "$mode" == install ]]; then
+      # The skill left the account: drop our links instead of leaving them dangling.
+      for link in "$agents_link" "$claude_link"; do
+        if managed_link "$link" && [[ ! -e "$link" ]]; then rm "$link"; fi
+      done
+    fi
+    continue
+  fi
+
+  if [[ "$mode" == --check ]]; then
+    [[ -L "$agents_link" && "$(readlink "$agents_link")" == "$source" ]] ||
+      fail "Codex link for account skill $name is missing or incorrect; run ./bootstrap integrations"
+    [[ -L "$claude_link" && "$(readlink "$claude_link")" == "$agents_link" ]] ||
+      fail "Claude link for account skill $name is missing or incorrect; run ./bootstrap integrations"
+    linked=$((linked + 1))
+    continue
+  fi
+
+  for link in "$agents_link" "$claude_link"; do
+    [[ ! -e "$link" && ! -L "$link" ]] || managed_link "$link" ||
+      fail "$link already exists separately; remove it to use the account skill $name"
+  done
+  mkdir -p "$agents_skills" "$claude_skills"
+  ln -sfn "$source" "$agents_link"
+  ln -sfn "$agents_link" "$claude_link"
+  linked=$((linked + 1))
+done <"$list"
+
+if [[ "$mode" == --check ]]; then
+  printf 'Account skills linked for Codex and Claude Agent SDK hosts: %d.\n' "$linked"
+else
+  printf 'Linked %d account skills for Codex and Claude Agent SDK hosts.\n' "$linked"
+fi
