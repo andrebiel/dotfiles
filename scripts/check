@@ -12,6 +12,8 @@ bash -n "$DOTFILES_DIR/scripts/setup-split-dns"
 "$DOTFILES_DIR/tests/setup-split-dns.test.sh"
 bash -n "$DOTFILES_DIR/scripts/install-herdr-skill"
 python3 "$DOTFILES_DIR/tests/herdr-skill.test.py"
+bash -n "$DOTFILES_DIR/scripts/link-account-skills"
+python3 "$DOTFILES_DIR/tests/account-skills.test.py"
 "$DOTFILES_DIR/tests/platform.test.sh"
 bash -n "$DOTFILES_DIR/scripts/import-secrets"
 "$DOTFILES_DIR/tests/bootstrap-link.test.sh"
@@ -192,6 +194,7 @@ if [[ "$(uname -s)" == Darwin ]]; then
 
   with_integration_home "$DOTFILES_DIR/bootstrap" integrations >/dev/null
   with_integration_home "$DOTFILES_DIR/scripts/install-herdr-skill" --check
+  with_integration_home "$DOTFILES_DIR/scripts/link-account-skills" --check >/dev/null
   jq -e '
     .preserved == true and
     .statusLine == {
