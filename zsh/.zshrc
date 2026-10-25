@@ -55,6 +55,11 @@ export BUN_INSTALL="${BUN_INSTALL:-$HOME/.bun}"
 [[ -d "$BUN_INSTALL/bin" ]] && path=("$BUN_INSTALL/bin" $path)
 [[ -r "$BUN_INSTALL/_bun" ]] && source "$BUN_INSTALL/_bun"
 
+# Rust via Homebrew's rustup and cargo-installed tools.
+[[ -d "$HOME/.cargo/bin" ]] && path=("$HOME/.cargo/bin" $path)
+[[ -n "$HOMEBREW_PREFIX" && -d "$HOMEBREW_PREFIX/opt/rustup/bin" ]] &&
+  path=("$HOMEBREW_PREFIX/opt/rustup/bin" $path)
+
 # Optional Laravel Herd installations.
 if [[ -d "$HOME/.config/herd-lite/bin" ]]; then
   path=("$HOME/.config/herd-lite/bin" $path)
