@@ -89,6 +89,8 @@ In interactive Zsh, `claude` starts with `--dangerously-skip-permissions`, and
 `codex` starts with `--dangerously-bypass-approvals-and-sandbox`. These aliases
 disable permission prompts; Codex also runs without its sandbox. Use
 `command claude` or `command codex` to bypass the alias for one invocation.
+`claudep` runs the same aliased `claude` with `CLAUDE_CONFIG_DIR=~/.claude_personal`
+for a separate personal account.
 Herdr explicitly starts Zsh login shells on both platforms, even when its
 persistent server inherited `SHELL=/bin/bash`. Interactive Zsh also exports its
 own executable as `SHELL` for child tools. After updating, reload Herdr's config
