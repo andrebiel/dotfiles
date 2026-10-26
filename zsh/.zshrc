@@ -28,6 +28,7 @@ alias gs='git status'
 alias vim='nvim'
 alias crd='composer run dev'
 alias claude='claude --dangerously-skip-permissions'
+alias claudep='CLAUDE_CONFIG_DIR=~/.claude_personal claude'
 alias codex='codex --dangerously-bypass-approvals-and-sandbox'
 
 # Node via Homebrew's nvm package.
