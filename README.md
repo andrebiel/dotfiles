@@ -345,32 +345,6 @@ Unchanged files stay untouched; replaced instructions are backed up next to
 `./scripts/install-herdr-skill --check` verifies the shared skill and Claude link
 without changing them; both platform doctors include this check.
 
-## Claude account skills
-
-Skills created in the Claude account (Settings → Skills) reach Claude Code and
-claude.ai directly. Codex reads `~/.agents/skills`, and Claude Agent SDK hosts
-such as t3code read only top-level `~/.claude/skills`, so neither sees them.
-
-`./bootstrap integrations` links every skill named in `agents/account-skills`
-to Claude Code's local mirror of the account,
-`~/.claude/skills/synced/<organization>/<name>`:
-
-- `~/.agents/skills/<name>` points at the mirrored skill (Codex, t3code with Codex).
-- `~/.claude/skills/<name>` points at that link (t3code with Claude).
-
-Edit a skill only in the Claude account; every link follows the mirror. The
-mirror exists after Claude Code has been signed in and started once on the
-machine; until then the script reports the skill as not synced and skips it.
-Over SSH, agents use the remote machine's home directory, so run the bootstrap
-there too. Claude Code itself lists such a skill twice, once from the account
-and once through the link.
-
-To share another account skill, add its name to `agents/account-skills` and run
-`./bootstrap integrations`. A skill that leaves the account loses its links on
-the next run. Existing directories or foreign links with the same name are
-reported rather than replaced. `./scripts/link-account-skills --check` verifies
-the links without changing them; both platform doctors include this check.
-
 ## Herdr Lazygit
 
 Press `Ctrl+Space`, release, then `Alt+G` (`Option+G` on macOS) to open Lazygit

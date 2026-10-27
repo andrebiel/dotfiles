@@ -50,8 +50,7 @@ Linux installation supports Ubuntu/Debian on x86_64 and arm64.
   install   Install platform dependencies and the latest Node LTS.
   auth      Sign in to 1Password and render machine-local secrets.
   secrets   Render ~/.config/zsh/secrets.zsh from 1Password.
-  integrations  Configure Claude Code, Herdr integrations, the Herdr skill, and
-                account skill links.
+  integrations  Configure Claude Code, Herdr integrations, and the Herdr skill.
   usage [--reload]  Ensure the AI usage job is loaded; --reload forces replacement.
   link      Back up non-secret conflicts and create Stow symlinks.
   doctor    Check links, syntax, secret safety, and effective configurations.
@@ -232,7 +231,6 @@ configure_integrations() (
   else
     printf 'Claude status line configured; Herdr integrations skipped (Herdr is not installed).\n'
   fi
-  "$DOTFILES_DIR/scripts/link-account-skills"
 )
 
 configure_ai_usage() (
@@ -792,7 +790,6 @@ doctor() {
       fail "Herdr $herdr_integration integration is not current"
   done
   "$DOTFILES_DIR/scripts/install-herdr-skill" --check
-  "$DOTFILES_DIR/scripts/link-account-skills" --check
 
   need codexbar
   need ai-usage

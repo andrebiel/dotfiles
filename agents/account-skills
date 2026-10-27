@@ -1,4 +1,0 @@
-# Skills from the Claude account that Codex and Claude Agent SDK hosts (t3code)
-# should also see. One name per line; run ./bootstrap integrations after edits.
-full-send
-git-cleanup
