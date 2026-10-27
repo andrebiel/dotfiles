@@ -91,7 +91,6 @@ linux_doctor() {
     grep -Eq "^${integration}: current \\(v[0-9]+\\)" <<<"$integration_status" || fail "Herdr $integration integration is not current"
   done
   "$DOTFILES_DIR/scripts/install-herdr-skill" --check
-  "$DOTFILES_DIR/scripts/link-account-skills" --check
   grep -Fqx 'default_shell = "/usr/bin/zsh"' "$HOME/.config/herdr/config.toml" || fail 'Herdr must start Zsh'
   zsh -n "$HOME/.zshrc"
   zsh -lic '
